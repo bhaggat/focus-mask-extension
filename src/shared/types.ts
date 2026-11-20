@@ -7,6 +7,8 @@ export interface Settings {
   autoPause: boolean;
   /** Pause while the OS screen is locked; resume on unlock. */
   pauseOnLock: boolean;
+  /** Headphone / keyboard media keys play-pause FocusMask (only while no other tab is audible). */
+  mediaKeys: boolean;
   breakEnabled: boolean;
   breakIntervalMin: number;
   breakLengthMin: number;
@@ -61,12 +63,21 @@ export type BgMessage =
   | { type: 'endBreak' }
   | { type: 'sleepTimer'; minutes: number | null }
   | { type: 'customDeleted'; soundId: string }
+  /** Hardware media key, relayed by the offscreen document's Media Session. */
+  | { type: 'mediaKey'; action: 'play' | 'pause' }
   | { type: 'audioStatus' }
   | { type: 'getState' };
 
+/** Whether the offscreen doc should claim the OS media session (headphone/media keys). */
+export interface MediaSessionConfig {
+  enabled: boolean;
+  title: string;
+}
+
 /** background → offscreen */
 export type OffscreenMessage =
-  | { target: 'offscreen'; type: 'play'; soundId: string; volume: number }
+  | { target: 'offscreen'; type: 'play'; soundId: string; volume: number; session: MediaSessionConfig }
+  | { target: 'offscreen'; type: 'session'; session: MediaSessionConfig }
   | { target: 'offscreen'; type: 'pause' }
   | { target: 'offscreen'; type: 'volume'; volume: number }
   | { target: 'offscreen'; type: 'status' };
@@ -77,4 +88,6 @@ export interface OffscreenStatus {
   contextState: string;
   rms: number;
   error: string | null;
+  /** The OS media session (headphone/media keys) is currently claimed. */
+  mediaSession?: boolean;
 }

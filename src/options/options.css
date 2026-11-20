@@ -412,6 +412,14 @@ html {
   font-size: 12px;
   margin: 0;
 }
+.o-version a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.o-version a:hover {
+  color: var(--text);
+}
 
 @media (max-width: 760px) {
   .o-shell {

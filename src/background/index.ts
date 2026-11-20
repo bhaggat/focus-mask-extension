@@ -2,7 +2,7 @@ import { CUSTOM_CHANNEL, getCustomSound } from '../shared/db';
 import { loadSettings, saveSettings, SLEEP_LIMITS } from '../shared/settings';
 import { initialState, isPlaying, reduce, type StateEvent } from '../shared/state';
 import { builtinById, DEFAULT_SOUND_ID, isBuiltinId, isCustomId } from '../shared/sounds';
-import type { BgMessage, RuntimeState, Settings } from '../shared/types';
+import type { BgMessage, MediaSessionConfig, RuntimeState, Settings } from '../shared/types';
 import {
   ALARM_BREAK_END,
   ALARM_BREAK_START,
@@ -54,6 +54,37 @@ async function soundName(id: string): Promise<string | undefined> {
 async function persist() {
   await chrome.storage.session.set({ [STATE_KEY]: state });
   await updateBadge(state, await soundName(state.soundId)).catch((e: unknown) => console.warn('[FocusMask] badge', e));
+  await syncMediaSession();
+}
+
+/**
+ * Headphone / media keys reach us only while no other tab is audible: if music or a
+ * call is playing elsewhere we release the OS media session so the key goes there.
+ */
+async function mediaSessionConfig(): Promise<MediaSessionConfig> {
+  return {
+    enabled: settings.mediaKeys && !state.tabAudible,
+    title: (await soundName(state.soundId)) ?? 'FocusMask',
+  };
+}
+
+let sentSession: string | null = null;
+async function syncMediaSession() {
+  const session = await mediaSessionConfig();
+  const key = JSON.stringify(session);
+  if (key === sentSession) return;
+  // No document → nothing to update; the next play message carries the config.
+  const res = await sendToOffscreen({ type: 'session', session }).catch(() => null);
+  sentSession = res ? key : null;
+}
+
+async function onMediaKey(action: 'play' | 'pause') {
+  if (!settings.mediaKeys) return;
+  if (action === 'pause') return apply({ type: 'pause' });
+  // Another tab started playing before the debounce caught up: the key was meant for it.
+  const audibleNow = await anyAudibleTab();
+  if (state.tabAudible || audibleNow) return;
+  await apply({ type: 'play', audibleNow });
 }
 
 /**
@@ -146,13 +177,16 @@ async function syncAudio(): Promise<void> {
     await sendToOffscreen({ type: 'pause' });
     return;
   }
+  const session = await mediaSessionConfig();
+  const playMsg = { type: 'play', soundId: state.soundId, volume: settings.volume, session } as const;
+  sentSession = JSON.stringify(session);
   let res: { ok: boolean; error?: string } | null;
   try {
-    res = await sendToOffscreen({ type: 'play', soundId: state.soundId, volume: settings.volume }, { create: true });
+    res = await sendToOffscreen(playMsg, { create: true });
   } catch {
     // Doc may have been closing between the existence check and the send — retry once on a fresh one.
     try {
-      res = await sendToOffscreen({ type: 'play', soundId: state.soundId, volume: settings.volume }, { create: true });
+      res = await sendToOffscreen(playMsg, { create: true });
     } catch (e) {
       res = { ok: false, error: e instanceof Error ? e.message : String(e) };
     }
@@ -204,6 +238,7 @@ async function onSettingsChanged(prev: Settings, next: Settings) {
   if (prev.volume !== next.volume) await applyVolume(next.volume);
   if (prev.autoPause !== next.autoPause) await apply({ type: 'autoPause', enabled: next.autoPause });
   if (prev.pauseOnLock !== next.pauseOnLock) await apply({ type: 'lockPause', enabled: next.pauseOnLock });
+  if (prev.mediaKeys !== next.mediaKeys) await syncMediaSession();
 
   if (!next.breakEnabled && prev.breakEnabled) {
     await clearBreakAlarms();
@@ -243,6 +278,9 @@ async function handleMessage(msg: BgMessage): Promise<unknown> {
       break;
     case 'sleepTimer':
       await setSleepTimer(msg.minutes);
+      break;
+    case 'mediaKey':
+      await onMediaKey(msg.action);
       break;
     case 'customDeleted':
       if (state.soundId === msg.soundId) {

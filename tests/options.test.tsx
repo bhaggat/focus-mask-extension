@@ -31,6 +31,24 @@ describe('options page', () => {
     expect(screen.getByText(/desktop apps/)).toBeInTheDocument();
   });
 
+  it('shows the version and a developer credit link in the footer', async () => {
+    mockSnapshot({ onboarded: true });
+    render(<App />);
+    expect(await screen.findByText(/FocusMask v1\.0\.0/)).toBeInTheDocument();
+    const link = screen.getByRole('link', { name: 'Dhruv Bhagat' });
+    expect(link).toHaveAttribute('href', 'https://www.bhaggat.in/');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+  });
+
+  it('toggles headphone / media key control', async () => {
+    mockSnapshot({ onboarded: true });
+    render(<App />);
+    const toggle = await screen.findByRole('switch', { name: 'Control with headphone and media keys' });
+    expect(toggle).toHaveAttribute('aria-checked', 'true');
+    await userEvent.click(toggle);
+    expect(chromeMock.runtime.sendMessage).toHaveBeenCalledWith({ type: 'settings', patch: { mediaKeys: false } });
+  });
+
   it('break interval chips update settings', async () => {
     mockSnapshot({ onboarded: true, breakEnabled: true });
     render(<App />);

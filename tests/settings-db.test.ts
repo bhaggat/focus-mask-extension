@@ -26,6 +26,8 @@ describe('normalizeSettings', () => {
     expect(s.soundId).toBe('brown');
     expect(s.pauseOnLock).toBe(true);
     expect(normalizeSettings({ pauseOnLock: false }).pauseOnLock).toBe(false);
+    expect(s.mediaKeys).toBe(true);
+    expect(normalizeSettings({ mediaKeys: false }).mediaKeys).toBe(false);
   });
 });
 

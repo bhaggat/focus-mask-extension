@@ -48,7 +48,7 @@ export function App() {
           <a href="#my-sounds"><Upload size={16} /> My sounds</a>
           <a href="#auto-pause"><Zap size={16} /> Auto-pause</a>
           <a href="#breaks"><BellRing size={16} /> Break reminders</a>
-          <a href="#shortcut"><Keyboard size={16} /> Shortcut</a>
+          <a href="#shortcut"><Keyboard size={16} /> Controls</a>
           <a href="#privacy"><ShieldCheck size={16} /> Privacy &amp; FAQ</a>
         </nav>
         <NowPlaying snap={snap} />
@@ -68,9 +68,14 @@ export function App() {
         <MySoundsSection snap={snap} />
         <AutoPauseSection snap={snap} />
         <BreaksSection snap={snap} />
-        <ShortcutSection />
+        <ShortcutSection snap={snap} />
         <PrivacySection />
-        <p className="o-version">FocusMask v{chrome.runtime.getManifest().version}</p>
+        <p className="o-version">
+          FocusMask v{chrome.runtime.getManifest().version} · Made by{' '}
+          <a href="https://www.bhaggat.in/" target="_blank" rel="noopener noreferrer">
+            Dhruv Bhagat
+          </a>
+        </p>
       </main>
     </div>
   );
@@ -535,11 +540,11 @@ function BreaksSection({ snap }: { snap: Snapshot }) {
   );
 }
 
-function ShortcutSection() {
+function ShortcutSection({ snap }: { snap: Snapshot }) {
   const shortcut = useShortcut();
   return (
     <section id="shortcut" className="o-section">
-      <h2>Keyboard shortcut</h2>
+      <h2>Controls</h2>
       <div className="o-card o-setting">
         <div>
           <strong>Play / pause</strong>
@@ -551,6 +556,21 @@ function ShortcutSection() {
             Change
           </button>
         </div>
+      </div>
+      <div className="o-card o-setting o-setting-gap">
+        <div>
+          <strong>Headphone &amp; media keys</strong>
+          <p>
+            Your headphone button or keyboard play/pause key controls FocusMask — but only while no other tab is
+            playing audio. When music, a video or a call is playing, the key goes to that instead.
+          </p>
+        </div>
+        <Toggle
+          id="media-keys-toggle"
+          label="Control with headphone and media keys"
+          checked={snap.settings.mediaKeys}
+          onChange={(v) => void update({ mediaKeys: v })}
+        />
       </div>
     </section>
   );

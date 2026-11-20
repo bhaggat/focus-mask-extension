@@ -298,3 +298,36 @@ test('sleep timer: counts down in the popup, pauses when it fires, manual pause 
   expect((await ext.state()).state.sleepEndsAt).toBe(s2.sleepEndsAt);
   await popup.close();
 });
+
+test('headphone / media keys: session claimed only while no other tab is audible; setting releases it', async ({ ext }) => {
+  const claimed = async () => (await ext.audio())?.mediaSession === true;
+  await ext.msg({ type: 'play' });
+  await ext.waitAudio(audible);
+  await expect.poll(claimed).toBe(true);
+
+  // Media key pause/play round-trips through the worker.
+  await ext.msg({ type: 'mediaKey', action: 'pause' });
+  await ext.waitAudio(silent);
+  expect((await ext.state()).state.manual).toBe(true);
+  expect(await claimed()).toBe(true); // stays (paused) so the same button resumes
+  await ext.msg({ type: 'mediaKey', action: 'play' });
+  await ext.waitAudio(audible);
+
+  // Another tab plays → release, and a key press can't resume us over it.
+  const tab = await noisyTab(ext.ctx);
+  await ext.waitState((s) => s.tabAudible);
+  await expect.poll(claimed).toBe(false);
+  await ext.msg({ type: 'mediaKey', action: 'play' });
+  expect((await ext.state()).state.tabOverride).toBe(false);
+  await tab.page.close();
+  await ext.waitAudio(audible);
+  await expect.poll(claimed).toBe(true);
+
+  // Setting off → released, key ignored.
+  await ext.msg({ type: 'settings', patch: { mediaKeys: false } });
+  await expect.poll(claimed).toBe(false);
+  await ext.msg({ type: 'mediaKey', action: 'pause' });
+  expect((await ext.state()).state.manual).toBe(false);
+  await ext.msg({ type: 'settings', patch: { mediaKeys: true } });
+  await expect.poll(claimed).toBe(true);
+});

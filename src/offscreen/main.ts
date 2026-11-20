@@ -1,19 +1,35 @@
-import type { OffscreenMessage } from '../shared/types';
+import type { BgMessage, OffscreenMessage } from '../shared/types';
+import { MediaKeySession } from './mediaSession';
 import { Player } from './player';
 
 const player = new Player();
+const session = new MediaKeySession((action) => {
+  void chrome.runtime.sendMessage({ type: 'mediaKey', action } satisfies BgMessage).catch(() => undefined);
+});
 
 chrome.runtime.onMessage.addListener((msg: OffscreenMessage, _sender, sendResponse) => {
   if (msg?.target !== 'offscreen') return false;
   switch (msg.type) {
     case 'play':
+      session.configure(msg.session);
       player
         .play(msg.soundId, msg.volume)
-        .then(() => sendResponse({ ok: true }))
-        .catch((e: unknown) => sendResponse({ ok: false, error: e instanceof Error ? e.message : String(e) }));
+        .then(() => {
+          session.setPlaying(true);
+          sendResponse({ ok: true });
+        })
+        .catch((e: unknown) => {
+          session.setPlaying(false);
+          sendResponse({ ok: false, error: e instanceof Error ? e.message : String(e) });
+        });
       return true;
     case 'pause':
       player.pause();
+      session.setPlaying(false);
+      sendResponse({ ok: true });
+      return false;
+    case 'session':
+      session.configure(msg.session);
       sendResponse({ ok: true });
       return false;
     case 'volume':
@@ -21,7 +37,7 @@ chrome.runtime.onMessage.addListener((msg: OffscreenMessage, _sender, sendRespon
       sendResponse({ ok: true });
       return false;
     case 'status':
-      sendResponse(player.status());
+      sendResponse({ ...player.status(), mediaSession: session.claimed });
       return false;
   }
 });

@@ -6,6 +6,7 @@ export const DEFAULT_SETTINGS: Settings = {
   volume: 0.5,
   autoPause: true,
   pauseOnLock: true,
+  mediaKeys: true,
   breakEnabled: false,
   breakIntervalMin: 50,
   breakLengthMin: 5,
@@ -28,6 +29,7 @@ export function normalizeSettings(raw: Partial<Record<keyof Settings, unknown>> 
     volume: clamp(num(r.volume, DEFAULT_SETTINGS.volume), 0, 1),
     autoPause: bool(r.autoPause, DEFAULT_SETTINGS.autoPause),
     pauseOnLock: bool(r.pauseOnLock, DEFAULT_SETTINGS.pauseOnLock),
+    mediaKeys: bool(r.mediaKeys, DEFAULT_SETTINGS.mediaKeys),
     breakEnabled: bool(r.breakEnabled, DEFAULT_SETTINGS.breakEnabled),
     breakIntervalMin: Math.round(
       clamp(num(r.breakIntervalMin, DEFAULT_SETTINGS.breakIntervalMin), BREAK_INTERVAL_LIMITS.min, BREAK_INTERVAL_LIMITS.max),
