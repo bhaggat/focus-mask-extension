@@ -190,7 +190,7 @@ await render(
     lead: 'Brown, pink & white noise plus calming nature sounds — right in your toolbar.',
     bullets: [
       'Keeps playing when the popup closes',
-      'Sleep timer: stop after 15 min – 2 h',
+      'Sleep timer: 15 min up to 12 h',
       'Generated on your device — works offline',
       'Global shortcut: Alt+Shift+M',
     ],
@@ -254,8 +254,8 @@ const notif = `
 await render(
   split({
     title: 'Gentle, optional <em>break reminders</em>',
-    lead: 'A simple notification every 25–90 minutes. Your sound pauses for the break and resumes on its own.',
-    bullets: ['Off by default — never naggy', 'Snooze or skip in one click', 'No full-screen blockers'],
+    lead: 'A simple notification every 25–90 minutes. A soft chime and 5-second countdown before your sound pauses, and again before it resumes.',
+    bullets: ['Off by default — never naggy', 'Snooze, skip or restart in one click', 'No full-screen blockers'],
     image: raw('breaks'),
     imgW: 600,
     extra: notif,

@@ -64,6 +64,11 @@ export class MediaKeySession {
     return this.el !== null;
   }
 
+  /** What the OS media controls currently show for us. */
+  get playbackState(): MediaSessionPlaybackState {
+    return this.el && this.ms ? this.ms.playbackState : 'none';
+  }
+
   private sync() {
     if (!this.ms || !this.config.enabled) return this.release();
     if (this.playing) {

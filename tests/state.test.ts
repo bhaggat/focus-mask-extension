@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { initialState, isPlaying, pauseReasons, reduce, statusKind, type StateEvent } from '../src/shared/state';
+import { initialState, isPlaying, pauseReasons, reduce, shouldCountdown, statusKind, transitionDue, type StateEvent } from '../src/shared/state';
 import type { RuntimeState } from '../src/shared/types';
 
 const run = (s: RuntimeState, ...events: StateEvent[]) => events.reduce((acc, e) => reduce(acc, e).state, s);
@@ -168,5 +168,65 @@ describe('pause reasons state machine', () => {
     );
     expect(s.sleepEndsAt).toBe(999);
     expect(isPlaying(s)).toBe(true);
+  });
+});
+
+describe('break transition countdown', () => {
+  const playing = () => run(fresh(), { type: 'play' });
+  const onBreak = (s: RuntimeState) => run(s, { type: 'breakStart', endsAt: 1 });
+
+  it('counts down before a break only while sound is playing', () => {
+    expect(shouldCountdown(playing(), 'pause')).toBe(true);
+    expect(shouldCountdown(fresh(), 'pause')).toBe(false);
+    expect(shouldCountdown(onBreak(playing()), 'pause')).toBe(false);
+  });
+
+  it('counts down before resuming only when the break is the sole pause reason', () => {
+    expect(shouldCountdown(onBreak(playing()), 'resume')).toBe(true);
+    expect(shouldCountdown(onBreak(fresh()), 'resume')).toBe(false); // manually paused
+    const locked = run(playing(), { type: 'screenLocked', locked: true }, { type: 'breakStart', endsAt: 1 });
+    expect(shouldCountdown(locked, 'resume')).toBe(false);
+    expect(shouldCountdown(playing(), 'resume')).toBe(false); // no break
+  });
+
+  it('clears the countdown on play, pause, break start/end and rescheduling', () => {
+    const cd = { kind: 'pause' as const, at: 5000 };
+    const s = run(playing(), { type: 'countdown', countdown: cd });
+    expect(s.countdown).toEqual(cd);
+    for (const e of [
+      { type: 'pause' },
+      { type: 'breakStart', endsAt: 1 },
+      { type: 'breakEnd' },
+      { type: 'nextBreak', at: 9 },
+      { type: 'error', message: 'x' },
+    ] as StateEvent[]) {
+      expect(reduce(s, e).state.countdown).toBeNull();
+    }
+  });
+});
+
+describe('pending break transitions', () => {
+  const playing = () => run(fresh(), { type: 'play' });
+
+  it('play keeps a pending pause countdown outside a break, but clears it during one', () => {
+    const cd = { kind: 'pause' as const, at: 5000 };
+    expect(run(playing(), { type: 'countdown', countdown: cd }, { type: 'play' }).countdown).toEqual(cd);
+    const onBreak = run(playing(), { type: 'breakStart', endsAt: 9 }, { type: 'countdown', countdown: { kind: 'resume', at: 9 } });
+    expect(reduce(onBreak, { type: 'play' }).state.countdown).toBeNull();
+  });
+
+  it('a break start stays due until it starts or is rescheduled — even if the countdown was cleared', () => {
+    const s = run(playing(), { type: 'nextBreak', at: 5000 });
+    expect(transitionDue(s, { kind: 'pause', at: 5000 })).toBe(true);
+    expect(transitionDue(run(s, { type: 'pause' }), { kind: 'pause', at: 5000 })).toBe(true);
+    expect(transitionDue(run(s, { type: 'nextBreak', at: 9000 }), { kind: 'pause', at: 5000 })).toBe(false);
+    expect(transitionDue(run(s, { type: 'breakStart', endsAt: 1 }), { kind: 'pause', at: 5000 })).toBe(false);
+  });
+
+  it('a break end stays due while the break is active', () => {
+    const s = run(playing(), { type: 'breakStart', endsAt: 5000 });
+    expect(transitionDue(s, { kind: 'resume', at: 5000 })).toBe(true);
+    expect(transitionDue(run(s, { type: 'screenLocked', locked: true }), { kind: 'resume', at: 5000 })).toBe(true);
+    expect(transitionDue(run(s, { type: 'breakEnd' }), { kind: 'resume', at: 5000 })).toBe(false);
   });
 });

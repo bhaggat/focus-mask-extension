@@ -14,8 +14,9 @@ chrome.runtime.onMessage.addListener((msg: OffscreenMessage, _sender, sendRespon
       session.configure(msg.session);
       player
         .play(msg.soundId, msg.volume)
-        .then(() => {
-          session.setPlaying(true);
+        .then((started) => {
+          // A superseded play must not flip the OS media controls back to "playing".
+          if (started) session.setPlaying(true);
           sendResponse({ ok: true });
         })
         .catch((e: unknown) => {
@@ -32,12 +33,16 @@ chrome.runtime.onMessage.addListener((msg: OffscreenMessage, _sender, sendRespon
       session.configure(msg.session);
       sendResponse({ ok: true });
       return false;
+    case 'chime':
+      player.chime(msg.kind, msg.volume);
+      sendResponse({ ok: true });
+      return false;
     case 'volume':
       player.setVolume(msg.volume);
       sendResponse({ ok: true });
       return false;
     case 'status':
-      sendResponse({ ...player.status(), mediaSession: session.claimed });
+      sendResponse({ ...player.status(), mediaSession: session.claimed, mediaSessionState: session.playbackState });
       return false;
   }
 });

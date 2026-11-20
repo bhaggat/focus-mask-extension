@@ -12,10 +12,11 @@
     "test:e2e": "npm run build && playwright test",
     "zip": "node scripts/zip.mjs",
     "assets": "node scripts/store-assets.mjs",
-    "release": "npm run test && npm run test:e2e && npm run zip"
+    "release": "npm run test && npm run test:e2e && npm run zip",
+    "site": "node scripts/site.mjs"
   },
   "dependencies": {
-    "lucide-react": "^1.76.0",
+    "lucide-react": "^1.77.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },

@@ -1,11 +1,11 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { App } from '../src/options/App';
 import { deleteCustomSound, getCustomSound, putCustomSound } from '../src/shared/db';
 import { DEFAULT_SETTINGS } from '../src/shared/settings';
 import { initialState } from '../src/shared/state';
-import { chromeMock } from './setup';
+import { chromeMock, emitStorageChange } from './setup';
 
 function mockSnapshot(settings = {}) {
   chromeMock.runtime.sendMessage.mockResolvedValue({
@@ -15,6 +15,18 @@ function mockSnapshot(settings = {}) {
 }
 
 describe('options page', () => {
+  it('custom chip follows an external non-preset value', async () => {
+    mockSnapshot({ onboarded: true, breakEnabled: true, breakIntervalMin: 50 });
+    render(<App />);
+    const group = await screen.findByRole('group', { name: 'Break interval' });
+    act(() => emitStorageChange({ breakIntervalMin: { newValue: 37 } }, 'sync'));
+    expect(within(group).getByRole('button', { name: 'Custom' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(group).getByRole('spinbutton')).toHaveValue(37);
+    act(() => emitStorageChange({ breakIntervalMin: { newValue: 30 } }, 'sync'));
+    expect(within(group).getByRole('button', { name: '30 min' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(group).queryByRole('spinbutton')).not.toBeInTheDocument();
+  });
+
   it('shows onboarding until dismissed', async () => {
     mockSnapshot({ onboarded: false });
     render(<App />);

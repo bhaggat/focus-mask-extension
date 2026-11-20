@@ -74,6 +74,7 @@ export function useShortcut(): string | null {
   return key;
 }
 
+
 export function formatCountdown(ms: number) {
   const total = Math.max(0, Math.round(ms / 1000));
   const m = Math.floor(total / 60);

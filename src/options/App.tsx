@@ -13,13 +13,15 @@ import {
   X,
   Zap,
 } from 'lucide-react';
-import { useEffect, useRef, useState, type DragEvent } from 'react';
+import { useRef, useState, type DragEvent } from 'react';
 import { MAX_NAME_LENGTH, MAX_UPLOAD_BYTES, UPLOAD_ACCEPT, UPLOAD_FORMATS_LABEL } from '../shared/db';
 import { BREAK_INTERVAL_LIMITS, BREAK_LENGTH_LIMITS } from '../shared/settings';
 import { isPlaying, statusKind } from '../shared/state';
-import { BUILTIN_SOUNDS, builtinById, type SoundGroup } from '../shared/sounds';
+import { statusLabel } from '../shared/labels';
+import { BUILTIN_SOUNDS, soundDisplayName, type SoundGroup } from '../shared/sounds';
 import type { CustomSoundMeta, Settings } from '../shared/types';
 import { Kbd, Logo, SoundIcon, Toggle } from '../ui/components';
+import { NumberChoice } from '../ui/NumberChoice';
 import { send, useCustomSounds, useNow, useShortcut, useSnapshot, type Snapshot } from '../ui/hooks';
 import { addUploads, formatBytes, formatDuration, removeUpload, renameUpload } from './upload';
 
@@ -83,13 +85,10 @@ export function App() {
 
 function NowPlaying({ snap }: { snap: Snapshot }) {
   const { list } = useCustomSounds();
-  const name =
-    builtinById(snap.state.soundId)?.name ?? list.find((c) => c.id === snap.state.soundId)?.name ?? 'Custom sound';
+  const name = soundDisplayName(snap.state.soundId, list);
   const playing = isPlaying(snap.state);
   const kind = statusKind(snap.state);
-  const label = { playing: 'Playing', paused: 'Paused', 'auto-tab': 'Auto-paused', away: 'Screen locked', break: 'On a break' }[
-    kind
-  ];
+  const label = statusLabel(kind, 'short');
   return (
     <div className="o-nowplaying">
       <button
@@ -411,76 +410,6 @@ function AutoPauseSection({ snap }: { snap: Snapshot }) {
   );
 }
 
-function NumberChoice({
-  value,
-  options,
-  limits,
-  unit,
-  onChange,
-  label,
-}: {
-  value: number;
-  options: number[];
-  limits: { min: number; max: number };
-  unit: string;
-  onChange: (v: number) => void;
-  label: string;
-}) {
-  const [custom, setCustom] = useState(!options.includes(value));
-  const [draft, setDraft] = useState(String(value));
-  const editing = useRef(false);
-  // Follow changes made elsewhere (popup, another window, Chrome Sync) unless the user is typing.
-  useEffect(() => {
-    if (!editing.current) setDraft(String(value));
-  }, [value]);
-  const commit = () => {
-    editing.current = false;
-    const n = Math.min(limits.max, Math.max(limits.min, Math.round(Number(draft) || value)));
-    setDraft(String(n));
-    if (n !== value) onChange(n);
-  };
-  return (
-    <div className="o-choice" role="group" aria-label={label}>
-      {options.map((o) => (
-        <button
-          key={o}
-          className="o-chip"
-          aria-pressed={!custom && value === o}
-          onClick={() => {
-            setCustom(false);
-            onChange(o);
-          }}
-        >
-          {o} {unit}
-        </button>
-      ))}
-      <button className="o-chip" aria-pressed={custom} onClick={() => setCustom(true)}>
-        Custom
-      </button>
-      {custom && (
-        <label className="o-custom-num">
-          <input
-            type="number"
-            min={limits.min}
-            max={limits.max}
-            value={draft}
-            aria-label={`${label} (custom)`}
-            onChange={(e) => {
-              editing.current = true;
-              setDraft(e.target.value);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') commit();
-            }}
-            onBlur={commit}
-          />
-          {unit}
-        </label>
-      )}
-    </div>
-  );
-}
-
 function BreaksSection({ snap }: { snap: Snapshot }) {
   const { settings, state } = snap;
   const now = useNow(settings.breakEnabled);
@@ -492,8 +421,8 @@ function BreaksSection({ snap }: { snap: Snapshot }) {
         <div>
           <strong>Remind me to take breaks</strong>
           <p>
-            A dismissible notification with Snooze and Skip. During the break your sound pauses and then resumes on
-            its own.
+            A dismissible notification with Snooze and Skip. A soft chime and a 5-second countdown play before your
+            sound pauses for the break, and again before it resumes on its own.
           </p>
         </div>
         <Toggle
@@ -613,7 +542,7 @@ function PrivacySection() {
         <details>
           <summary>Can it stop on its own after a while?</summary>
           <p>
-            Yes — use the <strong>Sleep timer</strong> in the toolbar popup (15 min to 2 h). When it runs out the sound
+            Yes — use the <strong>Sleep timer</strong> in the toolbar popup (15 min, 30 min, 1 h, 2 h or a custom length up to 12 h). When it runs out the sound
             fades out and stays paused. Pausing manually cancels the timer.
           </p>
         </details>

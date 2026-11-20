@@ -29,14 +29,4 @@ describe('AudibleDebouncer', () => {
     vi.advanceTimersByTime(1);
     expect(cb).toHaveBeenLastCalledWith(false);
   });
-
-  it('force applies immediately and cancels pending', () => {
-    const cb = vi.fn();
-    const d = new AudibleDebouncer(false, cb);
-    d.push(true);
-    d.force(true);
-    expect(cb).toHaveBeenCalledWith(true);
-    vi.advanceTimersByTime(10_000);
-    expect(cb).toHaveBeenCalledTimes(1);
-  });
 });

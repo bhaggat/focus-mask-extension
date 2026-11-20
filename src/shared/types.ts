@@ -15,6 +15,15 @@ export interface Settings {
   onboarded: boolean;
 }
 
+/** Which way a break transition goes: the sound is about to pause, or about to resume. */
+export type ChimeKind = 'pause' | 'resume';
+
+/** A 5 s heads-up before a break transition; `at` is when the transition happens. */
+export interface Countdown {
+  kind: ChimeKind;
+  at: number;
+}
+
 /** Runtime state owned by the service worker, mirrored to chrome.storage.session. */
 export interface RuntimeState {
   soundId: string;
@@ -37,6 +46,8 @@ export interface RuntimeState {
   sleepMin: number | null;
   /** Last playback error shown to the user (e.g. a deleted custom sound). */
   error: string | null;
+  /** Heads-up countdown before a break pauses or resumes the sound. */
+  countdown: Countdown | null;
 }
 
 export interface CustomSoundMeta {
@@ -61,6 +72,8 @@ export type BgMessage =
   | { type: 'volume'; volume: number; persist?: boolean }
   | { type: 'settings'; patch: Partial<Settings> }
   | { type: 'endBreak' }
+  /** Reset the countdown to the next break to a full interval. */
+  | { type: 'restartBreakTimer' }
   | { type: 'sleepTimer'; minutes: number | null }
   | { type: 'customDeleted'; soundId: string }
   /** Hardware media key, relayed by the offscreen document's Media Session. */
@@ -80,6 +93,7 @@ export type OffscreenMessage =
   | { target: 'offscreen'; type: 'session'; session: MediaSessionConfig }
   | { target: 'offscreen'; type: 'pause' }
   | { target: 'offscreen'; type: 'volume'; volume: number }
+  | { target: 'offscreen'; type: 'chime'; kind: ChimeKind; volume: number }
   | { target: 'offscreen'; type: 'status' };
 
 export interface OffscreenStatus {
@@ -90,4 +104,8 @@ export interface OffscreenStatus {
   error: string | null;
   /** The OS media session (headphone/media keys) is currently claimed. */
   mediaSession?: boolean;
+  /** OS-visible media session state ('none' when not claimed). */
+  mediaSessionState?: MediaSessionPlaybackState;
+  /** Most recent transition chime played (for diagnostics/tests). */
+  lastChime?: ChimeKind | null;
 }

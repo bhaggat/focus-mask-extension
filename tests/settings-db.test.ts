@@ -4,6 +4,7 @@ import {
   deleteCustomSound,
   displayNameFromFile,
   getCustomSound,
+  hasCustomSound,
   listCustomSounds,
   MAX_UPLOAD_BYTES,
   MAX_UPLOADS,
@@ -64,6 +65,17 @@ describe('IndexedDB store', () => {
     expect((await getCustomSound('custom:a'))?.name).toBe('A');
     await deleteCustomSound('custom:a');
     expect(await getCustomSound('custom:a')).toBeUndefined();
+  });
+});
+
+describe('hasCustomSound', () => {
+  it('reports existence by key without loading the record', async () => {
+    const id = 'custom:has-test';
+    expect(await hasCustomSound(id)).toBe(false);
+    await putCustomSound({ id, name: 'X', type: 'audio/wav', size: 1, duration: 1, createdAt: 1, blob: new Blob(['x']) });
+    expect(await hasCustomSound(id)).toBe(true);
+    await deleteCustomSound(id);
+    expect(await hasCustomSound(id)).toBe(false);
   });
 });
 

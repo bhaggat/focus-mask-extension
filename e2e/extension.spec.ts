@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { audible, badge, DIST, expect, noisyTab, restartWorker, silent, test } from './fixtures';
+import { audible, badge, DIST, expect, noisyTab, restartWorker, silent, test, type Ext } from './fixtures';
 import { BUILTIN_SOUNDS } from '../src/shared/sounds';
 
 test.describe.configure({ mode: 'serial' });
@@ -209,7 +209,7 @@ test('worker restart after reload/update: pending break alarm is adopted, not sh
   // Popup shows the countdown rather than "Breaks off".
   const popup = await ext.ctx.newPage();
   await popup.goto(ext.url('popup.html'));
-  await expect(popup.getByText(/Next break in 4[45] min/)).toBeVisible();
+  await expect(popup.getByText(/Next in 4[45] min/)).toBeVisible();
   await popup.close();
 });
 
@@ -247,7 +247,7 @@ test('screen lock pauses with a fade and unlock resumes; setting off ignores it'
   const locked = await ext.waitState((s) => s.screenLocked);
   expect(locked.manual).toBe(false);
   await ext.waitAudio(silent);
-  await expect.poll(() => badge(ext)).toEqual({ text: 'II', title: 'FocusMask — Paused while your screen is locked' });
+  await expect.poll(() => badge(ext)).toEqual({ text: 'II', title: 'FocusMask — Paused — screen locked' });
 
   await fireIdle(ext, 'active');
   await ext.waitState((s) => !s.screenLocked);
@@ -291,8 +291,12 @@ test('sleep timer: counts down in the popup, pauses when it fires, manual pause 
   await ext.waitState((s) => s.manual && s.sleepEndsAt === null);
   expect(await ext.sw.evaluate(() => chrome.alarms.get('sleep-timer'))).toBeFalsy();
 
+  // Choosing a timer while paused also starts playback.
+  await ext.msg({ type: 'sleepTimer', minutes: 30 });
+  await ext.waitState((s) => !s.manual && !!s.sleepEndsAt);
+  await ext.waitAudio(audible);
+
   // Survives a worker restart.
-  await ext.msg({ type: 'play' });
   const { state: s2 } = await ext.msg({ type: 'sleepTimer', minutes: 60 });
   await restartWorker(ext);
   expect((await ext.state()).state.sleepEndsAt).toBe(s2.sleepEndsAt);
@@ -330,4 +334,141 @@ test('headphone / media keys: session claimed only while no other tab is audible
   expect((await ext.state()).state.manual).toBe(false);
   await ext.msg({ type: 'settings', patch: { mediaKeys: true } });
   await expect.poll(claimed).toBe(true);
+});
+
+test('superseded play leaves the media session paused', async ({ ext }) => {
+  await ext.msg({ type: 'select', soundId: 'brown', play: true });
+  await ext.waitAudio(audible);
+  // The worker serializes play/pause, so the race only happens when a play outlives its send
+  // timeout. Reproduce it by talking to the offscreen document directly: switching sounds fades
+  // for 600 ms, and a pause inside that window supersedes the play.
+  await ext.helper.evaluate(() => {
+    const session = { enabled: true, title: 'Ocean' };
+    void chrome.runtime.sendMessage({ target: 'offscreen', type: 'play', soundId: 'ocean', volume: 0.5, session });
+    void chrome.runtime.sendMessage({ target: 'offscreen', type: 'pause' });
+  });
+  await new Promise((r) => setTimeout(r, 1500));
+  const status = await ext.audio();
+  expect(status?.playing).toBe(false);
+  expect(status?.mediaSessionState).toBe('paused');
+});
+
+/** Arm a heads-up: main alarm in `leadMs`, its warning alarm almost immediately. */
+async function armWarn(ext: Ext, main: 'break-start' | 'break-end', leadMs = 5200) {
+  const warn = main === 'break-start' ? 'break-warn' : 'break-end-warn';
+  await ext.sw.evaluate(
+    ([m, w, lead]) => {
+      chrome.alarms.create(m, { when: Date.now() + lead });
+      chrome.alarms.create(w, { when: Date.now() + 200 });
+    },
+    [main, warn, leadMs] as const,
+  );
+}
+
+test('break countdown: chime + badge digits, then pause; resume countdown then audible', async ({ ext }) => {
+  await ext.msg({ type: 'select', soundId: 'rain', play: true });
+  await ext.waitAudio(audible);
+  await ext.msg({ type: 'settings', patch: { breakEnabled: true, breakIntervalMin: 30, breakLengthMin: 5 } });
+  expect(await ext.sw.evaluate(() => chrome.alarms.get('break-warn'))).toBeTruthy();
+
+  await armWarn(ext, 'break-start');
+  await ext.waitState((s) => s.countdown?.kind === 'pause');
+  expect((await badge(ext)).text).toMatch(/^[1-5]$/);
+  expect((await badge(ext)).title).toMatch(/Break in [1-5]s/);
+  expect((await ext.audio())?.lastChime).toBe('pause');
+  expect(audible(await ext.audio())).toBe(true); // still playing during the heads-up
+  await ext.waitState((s) => s.breakActive && !s.countdown, 10_000);
+  await ext.waitAudio(silent);
+
+  await armWarn(ext, 'break-end');
+  await ext.waitState((s) => s.countdown?.kind === 'resume');
+  expect((await badge(ext)).title).toMatch(/Resuming in [1-5]s/);
+  await expect.poll(async () => (await ext.audio())?.lastChime).toBe('resume');
+  await ext.waitState((s) => !s.breakActive && !s.countdown, 10_000);
+  await ext.waitAudio(audible);
+});
+
+test('no countdown or chime when the break would not change what you hear', async ({ ext }) => {
+  await ext.msg({ type: 'settings', patch: { breakEnabled: true } });
+  await armWarn(ext, 'break-start'); // manually paused
+  await ext.waitState((s) => s.breakActive, 10_000);
+  const { state } = await ext.state();
+  expect(state.countdown).toBeNull();
+  expect((await ext.audio())?.lastChime ?? null).toBeNull();
+});
+
+test('countdown is cancelled by settings change and by manual pause', async ({ ext }) => {
+  await ext.msg({ type: 'play' });
+  await ext.waitAudio(audible);
+  await ext.msg({ type: 'settings', patch: { breakEnabled: true, breakIntervalMin: 30 } });
+
+  await armWarn(ext, 'break-start');
+  await ext.waitState((s) => s.countdown?.kind === 'pause');
+  const { state } = await ext.msg({ type: 'settings', patch: { breakIntervalMin: 45 } });
+  expect(state.countdown).toBeNull();
+  const warn = await ext.sw.evaluate(() => chrome.alarms.get('break-warn'));
+  expect(warn?.scheduledTime).toBeGreaterThan(Date.now() + 44 * 60_000);
+  await new Promise((r) => setTimeout(r, 7000));
+  expect((await ext.state()).state.breakActive).toBe(false);
+  expect(audible(await ext.audio())).toBe(true);
+  expect((await badge(ext)).text).toBe('ON');
+
+  await armWarn(ext, 'break-start');
+  await ext.waitState((s) => s.countdown?.kind === 'pause');
+  const paused = await ext.msg({ type: 'pause' });
+  expect(paused.state.countdown).toBeNull();
+});
+
+test('stale countdown is cleared after a worker restart', async ({ ext }) => {
+  await ext.msg({ type: 'play' });
+  await ext.waitAudio(audible);
+  await ext.msg({ type: 'settings', patch: { breakEnabled: true } });
+  await armWarn(ext, 'break-start', 3000);
+  await ext.waitState((s) => s.countdown?.kind === 'pause');
+  // Kill the worker before the transition so neither the ticker nor the alarm handler runs,
+  // and drop the main alarm so the restarted worker sees only the stale countdown.
+  await ext.sw.evaluate(() => chrome.alarms.clear('break-start'));
+  const cdp = await ext.ctx.newCDPSession(ext.helper);
+  const { targetInfos } = await cdp.send('Target.getTargets');
+  const sw = targetInfos.find((t) => t.type === 'service_worker' && t.url.includes(ext.id))!;
+  await cdp.send('Target.closeTarget', { targetId: sw.targetId });
+  await cdp.detach();
+  await new Promise((r) => setTimeout(r, 3500));
+  const { state } = await ext.state();
+  expect(state.countdown).toBeNull();
+  expect(state.breakActive).toBe(false); // dropped, not replayed late
+  expect(state.nextBreakAt).toBeGreaterThan(Date.now()); // rescheduled by reconcile
+  expect((await badge(ext)).text).not.toMatch(/^[1-5]$/);
+});
+
+test('restart break timer resets the next break to a full interval', async ({ ext }) => {
+  await ext.msg({ type: 'settings', patch: { breakEnabled: true, breakIntervalMin: 30 } });
+  await ext.sw.evaluate(() => chrome.alarms.create('break-start', { when: Date.now() + 60_000 }));
+  const { state } = await ext.msg({ type: 'restartBreakTimer' });
+  expect(state.nextBreakAt).toBeGreaterThan(Date.now() + 29 * 60_000);
+  const alarm = await ext.sw.evaluate(() => chrome.alarms.get('break-start'));
+  expect(alarm?.scheduledTime).toBe(state.nextBreakAt);
+});
+
+test('a break still starts on time when its main alarm is late and the countdown was cleared', async ({ ext }) => {
+  // Packed builds clamp alarms to ≥30 s apart, so break-start can fire ~25 s after break-warn.
+  // Simulate that by dropping the main alarm once the countdown is running.
+  await ext.msg({ type: 'select', soundId: 'brown', play: true });
+  await ext.waitAudio(audible);
+  await ext.msg({ type: 'settings', patch: { breakEnabled: true } });
+  await armWarn(ext, 'break-start');
+  await ext.waitState((s) => s.countdown?.kind === 'pause');
+  await ext.sw.evaluate(() => chrome.alarms.clear('break-start'));
+  // Re-selecting the playing sound must not cancel the pending break.
+  const { state } = await ext.msg({ type: 'select', soundId: 'brown', play: true });
+  expect(state.countdown?.kind).toBe('pause');
+  await ext.waitState((s) => s.breakActive, 8000);
+
+  // Resume side: manually paused during the break → no countdown, but the break still ends on time.
+  await ext.msg({ type: 'pause' });
+  await armWarn(ext, 'break-end');
+  await expect.poll(() => ext.sw.evaluate(() => chrome.alarms.get('break-end-warn'))).toBeUndefined(); // fired
+  expect((await ext.state()).state.countdown).toBeNull();
+  await ext.sw.evaluate(() => chrome.alarms.clear('break-end'));
+  await ext.waitState((s) => !s.breakActive, 8000);
 });

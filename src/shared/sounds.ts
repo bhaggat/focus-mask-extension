@@ -24,3 +24,8 @@ export const CUSTOM_PREFIX = 'custom:';
 export const isCustomId = (id: string) => id.startsWith(CUSTOM_PREFIX);
 export const isBuiltinId = (id: string) => BUILTIN_SOUNDS.some((s) => s.id === id);
 export const builtinById = (id: string) => BUILTIN_SOUNDS.find((s) => s.id === id);
+
+/** User-facing name for any sound id; custom names come from the caller's list. */
+export function soundDisplayName(id: string, custom: { id: string; name: string }[]): string {
+  return builtinById(id)?.name ?? custom.find((c) => c.id === id)?.name ?? 'Custom sound';
+}

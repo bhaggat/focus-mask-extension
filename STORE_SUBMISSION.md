@@ -10,24 +10,26 @@ Follow this top to bottom. Each field below has the exact value to paste. Everyt
 | Step | What to do |
 |---|---|
 | 0.1 | **Check the name is free.** Search the Chrome Web Store for "FocusMask". If an extension with that exact name already exists, pick another name and change it in the places listed in [§9](#9-renaming-the-extension). |
-| 0.2 | **Host the privacy policy** (gives you the URL needed in §4). Easiest option: create a **public GitHub Gist** → paste the contents of [`store-assets/privacy-policy.html`](store-assets/privacy-policy.html) → name the file `privacy-policy.html`. Then use the free viewer `https://htmlpreview.github.io/?<raw gist URL>`. **Better:** a GitHub repo with Pages turned on (Settings → Pages → Deploy from branch), with the file saved as `privacy/index.html`. URL: `https://<your-github-username>.github.io/<repo>/privacy/`. **Before you upload it, replace both `CONTACT_EMAIL` placeholders** in the file with your support email. |
+| 0.2 | **Deploy the landing site** `https://focusmask.bhaggat.in`. It provides the Homepage, Support and Privacy policy URLs used below. ① Make the GitHub repo **public**. ② Repo **Settings → Pages → Build and deployment → Source: GitHub Actions**. ③ At your DNS provider, add `CNAME` record **`focusmask` → `bhaggat.github.io`**. ④ Push `main`, and the **Deploy landing site** workflow publishes `site/`. ⑤ Settings → Pages → **Custom domain**: enter `focusmask.bhaggat.in` → **Save** (required: GitHub ignores the `CNAME` file for Actions deploys, and without this the site lands at a sub-path where its links break). Wait for the DNS check to pass, then tick **Enforce HTTPS** once the certificate is issued (it can take up to an hour). Optional: verify `bhaggat.in` under your account **Settings → Pages → Verified domains** to prevent subdomain takeover. ⑥ Check that <https://focusmask.bhaggat.in/privacy-policy/> and <https://focusmask.bhaggat.in/support/> load in a private window. Preview locally with `npm run site && python3 -m http.server -d site-dist`. |
 | 0.3 | **Build the package** (already built, but run this again after any code change): `npm ci && npm run release`. This runs the unit tests and the E2E tests, then writes `release/focusmask-v1.0.0.zip`. |
 
 ## 1. Developer account (one-time)
 
-1. Go to <https://chrome.google.com/webstore/devconsole>. Sign in with the Google account that will own the listing. A dedicated account is best, because ownership is hard to transfer later.
+1. Go to <https://chrome.google.com/webstore/devconsole/adbed94e-07c7-40cf-a800-ededc8b898b1>. Sign in with the Google account that will own the listing. A dedicated account is best, because ownership is hard to transfer later.
 2. Accept the developer agreement and pay the **one-time US$5 registration fee**.
 3. **Account** tab:
    - **Publisher name:** `FocusMask` (or your own name or brand)
-   - **Contact email:** your support email. You must verify it by clicking the link Google sends. Publishing stays blocked until you do.
+   - **Contact email:** `dhruvbhagat98@gmail.com`. You must verify it by clicking the link Google sends. Publishing stays blocked until you do.
    - **Trader / non-trader declaration** (required for EU users): if you build this as an individual hobby project and don't make money from it, choose **"Non-trader"**. If you sell things or act as a business, choose **"Trader"** and fill in the address and phone number it asks for. Those details are shown publicly to EU users.
 4. Turn on **2-step verification** on the Google account. Publishing requires it.
 
 ## 2. Create the item
 
-Developer Dashboard → **+ New item** → upload **`release/focusmask-v1.0.0.zip`**.
+Open your developer console: <https://chrome.google.com/webstore/devconsole/adbed94e-07c7-40cf-a800-ededc8b898b1> → **+ New item** → upload **`release/focusmask-v1.0.0.zip`**.
 
 The dashboard reads the name, version, description, icons and permissions from the manifest. If the upload fails, see [§10](#10-troubleshooting).
+
+**Copy the item ID** (the 32-letter ID in the item's URL and at the top of its page). Put it in `STORE_ITEM_ID` at the top of [`scripts/site.mjs`](scripts/site.mjs) and push. The landing page's "Coming soon" button becomes **Add to Chrome**, linking to `https://chromewebstore.google.com/detail/<item-id>`. The link works once the item is published.
 
 ## 3. Store listing tab
 
@@ -66,13 +68,13 @@ Every sound is generated on your device and loops seamlessly. FocusMask works fu
 Drag and drop your own MP3, WAV, OGG, FLAC or M4A files (up to 50 MB each), and rename them however you like. They are stored only on your computer and never uploaded.
 
 ★ SLEEP TIMER
-Stop playback after 15 minutes, 30 minutes, 1 hour or 2 hours. The sound fades out and stays paused.
+Stop playback after 15 minutes, 30 minutes, 1 hour, 2 hours, or any custom length up to 12 hours. The sound fades out and stays paused.
 
 ★ HANDS-FREE CONTROL
-Press Alt+Shift+M in any Chrome window to play or pause, without opening the popup. You can change the shortcut at chrome://extensions/shortcuts.
+Press Alt+Shift+M in any Chrome window to play or pause, without opening the popup. You can change the shortcut at chrome://extensions/shortcuts. Your headphone button and keyboard media keys work too, but only while no other tab is playing audio, so they never steal control from your music or a call.
 
 ★ OPTIONAL BREAK REMINDERS
-Off by default. Turn them on to get a gentle notification every 25–90 minutes (or any custom interval). Your sound pauses for the break and resumes on its own. Snooze or skip in one click. There are no full-screen blockers and no nagging.
+Off by default. Turn them on to get a gentle notification every 25–90 minutes (or any custom interval). Five seconds before a break, a soft chime plays and the toolbar badge counts down, then your sound pauses. Five seconds before the break ends, a rising chime plays and the sound comes back on its own. Snooze, skip or restart the timer in one click, and change the break length right from the popup. There are no full-screen blockers and no nagging.
 
 ★ PRIVATE BY DESIGN
 • No accounts, no analytics, no ads, no servers
@@ -105,8 +107,8 @@ All screenshots are taken from the real extension UI by `npm run assets`. Run it
 | Field | Value |
 |---|---|
 | **Official URL** | Leave as `None`. This option needs a domain verified in Google Search Console, so skip it. |
-| **Homepage URL** | Your GitHub repo URL if the repo is public, otherwise leave blank |
-| **Support URL** | Your GitHub repo's `/issues` URL, or `mailto:<your support email>` |
+| **Homepage URL** | `https://focusmask.bhaggat.in` |
+| **Support URL** | `https://focusmask.bhaggat.in/support/` |
 | **Mature content** | **No** (leave unchecked) |
 
 ## 4. Privacy practices tab
@@ -122,9 +124,9 @@ FocusMask plays ambient masking sound (noise, nature sounds or the user's own au
 | Permission | Justification |
 |---|---|
 | `offscreen` | `Manifest V3 service workers cannot play audio, so the selected ambient sound plays in an offscreen document (reason AUDIO_PLAYBACK). This lets playback continue after the popup closes. The offscreen document contains no UI and loads no remote content.` |
-| `storage` | `Saves the user's preferences (selected sound, volume, auto-pause toggle, break-reminder interval) in chrome.storage.sync and the current playback state in chrome.storage.session. Nothing is sent to any server.` |
+| `storage` | `Saves the user's preferences (selected sound, volume, auto-pause, screen-lock and media-key toggles, break-reminder interval and length) in chrome.storage.sync and the current playback state in chrome.storage.session. Nothing is sent to any server.` |
 | `unlimitedStorage` | `Users can upload their own audio files (MP3, WAV, OGG, FLAC or M4A, up to 50 MB each) to use as background sound. These files are stored locally in the extension's IndexedDB, and the default storage quota is too small for typical audio files. Files never leave the device.` |
-| `alarms` | `Schedules the optional break reminders (for example every 50 minutes) and the end of each break. chrome.alarms is needed because timers do not survive service-worker suspension.` |
+| `alarms` | `Schedules the optional break reminders (for example every 50 minutes), a 5-second heads-up before each break starts and ends, the end of each break, and the user's sleep timer. chrome.alarms is needed because timers do not survive service-worker suspension.` |
 | `notifications` | `Shows the optional break-reminder notification ("Time for a short break") with Snooze and Skip buttons, and a short "Break's over" notice. Break reminders are off by default.` |
 | `idle` | `Used only to detect when the user locks their screen (chrome.idle "locked" state) so the ambient sound pauses while they are away and resumes when they unlock. The extension does not track activity or idle time, and nothing is stored or transmitted. The feature can be turned off in the options page.` |
 
@@ -158,7 +160,7 @@ Justification box (if one is shown): `All JavaScript is bundled in the package. 
 
 ### Privacy policy
 
-**Privacy policy URL:** the URL from step 0.2. For example, `https://<your-github-username>.github.io/<repo>/privacy/`
+**Privacy policy URL:** `https://focusmask.bhaggat.in/privacy-policy/`
 
 ## 5. Distribution tab
 
@@ -180,14 +182,27 @@ No account or setup needed.
 2. Auto-pause: with sound playing, open any YouTube video in another tab. FocusMask pauses after about 1.5 s and resumes a couple of seconds after the video is paused. It reads only Chrome's tab "audible"/"muted" flags, which do not require the "tabs" permission.
 3. Options page (gear icon): the built-in sound library, uploading your own audio file (stored locally in IndexedDB), and break reminders (off by default; when on, they use chrome.alarms and chrome.notifications).
 4. Keyboard shortcut: Alt+Shift+M toggles play/pause.
-5. Sleep timer: in the popup, pick 15m/30m/1h/2h; playback pauses when it runs out (chrome.alarms).
+5. Sleep timer: in the popup, pick 15m/30m/1h/2h or Custom; playback pauses when it runs out (chrome.alarms).
 6. Screen lock: with sound playing, lock the computer; the sound pauses and resumes on unlock (chrome.idle "locked" state only).
+7. Break countdown: enable break reminders in Options (or set a short custom interval such as 5 min). With sound playing, 5 seconds before the break the toolbar badge counts 5…1 and a short falling chime plays, then the sound pauses and a notification appears. 5 seconds before the break ends a rising chime plays and the sound resumes. Chimes are synthesized locally.
 The extension makes no network requests and contains no remote code.
 ```
 
-## 7. Submit
+## 7. Draft checklist, then submit
 
-1. Click **Save draft** on each tab. Every tab must show a green check.
+Fill each tab and click **Save draft**. Stop here to leave the item as a draft, and submit when you're ready.
+
+- ☐ **Package**: `release/focusmask-v1.0.0.zip` uploaded (§2), item ID copied into `scripts/site.mjs`
+- ☐ **Store listing**: description (§3.1), category, language, icon, 5 screenshots in order, small promo tile, marquee, Homepage and Support URLs (§3)
+- ☐ **Privacy practices**: single purpose, 6 permission justifications, remote code = No, no data boxes ticked, 3 certifications ticked, privacy policy URL (§4)
+- ☐ **Distribution**: free, Public, all regions (§5)
+- ☐ **Test instructions**: pasted (§6)
+- ☐ **Account**: contact email verified, trader/non-trader declared, 2-step verification on (§1)
+- ☐ Landing site live and HTTPS enforced (§0.2)
+
+When you're ready to publish:
+
+1. Make sure every tab shows a green check.
 2. Click **Submit for review**.
 3. Under "Publish automatically after review" leave **checked** (or uncheck it to publish manually once approved).
 4. Review usually takes **1–3 business days**. New developer accounts and the `unlimitedStorage` permission can sometimes make it take longer. You'll get an email either way.
@@ -206,7 +221,7 @@ If "FocusMask" is taken, change it in these places:
 - [`public/manifest.json`](public/manifest.json): `name`, `short_name`, `action.default_title`
 - UI strings: `grep -rn "FocusMask" src/`. This covers the popup header, options page, welcome card, notifications and HTML `<title>` tags.
 - [`scripts/store-assets.mjs`](scripts/store-assets.mjs): the brand text in the images. Then run `npm run build && npm run assets`.
-- [`store-assets/privacy-policy.html`](store-assets/privacy-policy.html) and the description in §3.1.
+- [`site/`](site/) (landing page, privacy policy, support page) and the description in §3.1.
 
 ## 10. Troubleshooting
 
@@ -215,7 +230,7 @@ If "FocusMask" is taken, change it in these places:
 | "Manifest file is invalid" or missing icon on upload | Run `npm run build && npm run zip`. The zip script validates every file the manifest references. Make sure you upload the **zip**, not the `dist` folder. |
 | Rejected for "Excessive permissions" | Reply quoting the §4 justifications. The usual question is about `unlimitedStorage`: it's only used for user-uploaded audio stored locally. |
 | Rejected for "Misleading functionality" (auto-pause) | The listing, the welcome screen and the options page already state the browser-tab-only limitation. Point the reviewer to the "Honest note" paragraph. |
-| Rejected over the privacy policy | Make sure the URL is publicly reachable without logging in, and that the `CONTACT_EMAIL` placeholders were replaced. |
+| Rejected over the privacy policy | Make sure <https://focusmask.bhaggat.in/privacy-policy/> is publicly reachable without logging in (DNS + Pages, §0.2). |
 | Shortcut shows "Not set" | Another extension already uses Alt+Shift+M. Users can set their own at `chrome://extensions/shortcuts`. This is expected behavior and not a bug. |
 
 ---
@@ -232,5 +247,5 @@ store-assets/screenshots/4-your-sounds.png→ Screenshot 4
 store-assets/screenshots/5-breaks.png     → Screenshot 5
 store-assets/promo/small-promo-440x280.png→ Small promo tile
 store-assets/promo/marquee-1400x560.png   → Marquee promo tile
-store-assets/privacy-policy.html          → Host publicly; use the URL in Privacy practices
+https://focusmask.bhaggat.in/privacy-policy/ → Privacy policy URL (from site/, deployed by GitHub Pages)
 ```

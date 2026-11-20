@@ -88,6 +88,9 @@ export function newCustomId(): string {
 export const putCustomSound = (rec: CustomSoundRecord) => tx('readwrite', (s) => s.put(rec)).then(() => rec);
 export const getCustomSound = (id: string) =>
   tx<CustomSoundRecord | undefined>('readonly', (s) => s.get(id) as IDBRequest<CustomSoundRecord | undefined>);
+/** Existence check by key: never pulls the (possibly large) blob record. */
+export const hasCustomSound = (id: string) =>
+  tx<IDBValidKey | undefined>('readonly', (s) => s.getKey(id)).then((k) => k !== undefined);
 export const deleteCustomSound = (id: string) => tx('readwrite', (s) => s.delete(id)).then(() => undefined);
 
 export async function renameCustomSound(id: string, name: string): Promise<string> {

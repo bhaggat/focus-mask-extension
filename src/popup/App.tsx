@@ -1,9 +1,16 @@
-import { Pause, Play, Settings as Gear, Volume1, Volume2, VolumeX, X } from 'lucide-react';
+import { Pause, Play, RotateCcw, Settings as Gear, Volume1, Volume2, VolumeX, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { isPlaying, statusKind } from '../shared/state';
-import { BUILTIN_SOUNDS, builtinById, isCustomId } from '../shared/sounds';
+import { countdownSeconds, isPlaying, statusKind } from '../shared/state';
+import { statusLabel } from '../shared/labels';
+import { BREAK_LENGTH_LIMITS, SLEEP_LIMITS } from '../shared/settings';
+import { BUILTIN_SOUNDS, soundDisplayName } from '../shared/sounds';
 import { Kbd, Logo, SoundIcon, Toggle } from '../ui/components';
+import { NumberChoice } from '../ui/NumberChoice';
 import { formatCountdown, formatMinutes, send, useCustomSounds, useNow, useShortcut, useSnapshot } from '../ui/hooks';
+
+const BREAK_LENGTHS = [3, 5, 10, 15];
+
+const formatSleep = (min: number) => (min >= 60 ? `${Math.floor(min / 60)}h${min % 60 ? `${min % 60}m` : ''}` : `${min}m`);
 
 const SLEEP_PRESETS = [
   { min: 15, label: '15m', long: '15 minutes' },
@@ -18,39 +25,70 @@ export function App() {
   const shortcut = useShortcut();
   const [volume, setVolume] = useState<number | null>(null);
   const volumeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const now = useNow(!!snap && (snap.state.breakActive || snap.settings.breakEnabled || !!snap.state.sleepEndsAt));
+  const now = useNow(
+    !!snap && (snap.state.breakActive || snap.settings.breakEnabled || !!snap.state.sleepEndsAt || !!snap.state.countdown),
+  );
 
+  const dragging = useRef(false);
+  const liveVolume = useRef<number | null>(null);
+  const volumeFrame = useRef<number | null>(null);
+  const syncedVolume = snap?.settings.volume;
+
+  // Follow volume changes made elsewhere (options, another device) unless the user is dragging.
   useEffect(() => {
-    if (snap && volume === null) setVolume(snap.settings.volume);
-  }, [snap, volume]);
+    if (syncedVolume !== undefined && !dragging.current) setVolume(syncedVolume);
+  }, [syncedVolume]);
+
+  const [sleepDraft, setSleepDraft] = useState<string | null>(null);
 
   if (!snap) return <div className="popup popup-loading" aria-busy="true" />;
   const { state, settings } = snap;
   const playing = isPlaying(state);
   const kind = statusKind(state);
-  const customMeta = custom.find((c) => c.id === state.soundId);
-  const soundName = isCustomId(state.soundId) ? (customMeta?.name ?? 'Custom sound') : builtinById(state.soundId)?.name;
+  const soundName = soundDisplayName(state.soundId, custom);
 
-  const statusText = {
-    playing: 'Playing',
-    paused: 'Paused',
-    'auto-tab': 'Auto-paused — another tab is playing audio',
-    away: 'Paused — screen locked',
-    break: state.breakEndsAt ? `On a break · resumes in ${formatCountdown(state.breakEndsAt - now)}` : 'On a break',
-  }[kind];
+  const cd = state.countdown;
+  const cdSecs = cd ? countdownSeconds(cd.at, now) : 0;
+  const statusText = cd
+    ? cd.kind === 'pause'
+      ? `Pausing for a break in ${cdSecs}s`
+      : `Resuming in ${cdSecs}s`
+    : kind === 'break' && state.breakEndsAt
+      ? `On a break · resumes in ${formatCountdown(state.breakEndsAt - now)}`
+      : statusLabel(kind);
 
   const vol = volume ?? settings.volume;
   const onVolume = (v: number) => {
+    dragging.current = true;
     setVolume(v);
-    void send({ type: 'volume', volume: v });
+    // Live updates: one message per frame carrying the latest value, not one per input event.
+    liveVolume.current = v;
+    if (volumeFrame.current === null) {
+      volumeFrame.current = requestAnimationFrame(() => {
+        volumeFrame.current = null;
+        if (liveVolume.current !== null) void send({ type: 'volume', volume: liveVolume.current });
+        liveVolume.current = null;
+      });
+    }
     if (volumeTimer.current) clearTimeout(volumeTimer.current);
-    volumeTimer.current = setTimeout(() => void send({ type: 'volume', volume: v, persist: true }), 400);
+    volumeTimer.current = setTimeout(() => flushVolume(v), 400);
   };
   // Persist immediately on release so closing the popup right after a drag never loses it.
   const flushVolume = (v: number) => {
     if (volumeTimer.current) clearTimeout(volumeTimer.current);
+    if (volumeFrame.current !== null) cancelAnimationFrame(volumeFrame.current);
     volumeTimer.current = null;
+    volumeFrame.current = null;
+    liveVolume.current = null;
+    dragging.current = false;
     void send({ type: 'volume', volume: v, persist: true });
+  };
+  const customSleepOn = !!state.sleepEndsAt && !SLEEP_PRESETS.some((p) => p.min === state.sleepMin);
+  const commitSleep = () => {
+    const n = Math.round(Number(sleepDraft));
+    setSleepDraft(null);
+    if (!Number.isFinite(n) || n <= 0) return;
+    void send({ type: 'sleepTimer', minutes: Math.min(SLEEP_LIMITS.max, Math.max(SLEEP_LIMITS.min, n)) });
   };
   const VolIcon = vol === 0 ? VolumeX : vol < 0.5 ? Volume1 : Volume2;
 
@@ -160,8 +198,8 @@ export function App() {
             onChange={(v) => void send({ type: 'settings', patch: { autoPause: v } })}
           />
         </div>
-        <div className="p-row">
-          <div>
+        <div className="p-block">
+          <div className="p-row">
             <div className="p-row-title">Sleep timer</div>
             <div className="p-row-sub p-nowrap" data-testid="sleep-status">
               {state.sleepEndsAt ? `Pauses in ${formatCountdown(state.sleepEndsAt - now)}` : 'Off'}
@@ -184,11 +222,69 @@ export function App() {
                 </button>
               );
             })}
+            <button
+              className="p-chip"
+              aria-pressed={customSleepOn || sleepDraft !== null}
+              aria-label={customSleepOn ? 'Cancel custom sleep timer' : 'Custom sleep timer'}
+              title={customSleepOn ? 'Cancel timer' : 'Custom duration'}
+              onClick={() => {
+                if (customSleepOn) void send({ type: 'sleepTimer', minutes: null });
+                else setSleepDraft((d) => (d === null ? String(state.sleepMin ?? 45) : null));
+              }}
+            >
+              {customSleepOn ? formatSleep(state.sleepMin!) : 'Custom'}
+              {customSleepOn && <X size={11} strokeWidth={3} aria-hidden />}
+            </button>
+            {sleepDraft !== null && (
+              <label className="p-custom-num">
+                <input
+                  type="number"
+                  min={SLEEP_LIMITS.min}
+                  max={SLEEP_LIMITS.max}
+                  value={sleepDraft}
+                  autoFocus
+                  aria-label="Sleep timer minutes"
+                  onChange={(e) => setSleepDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') commitSleep();
+                    else if (e.key === 'Escape') setSleepDraft(null);
+                  }}
+                />
+                min
+              </label>
+            )}
           </div>
         </div>
+        {settings.breakEnabled && !state.breakActive && (
+          <div className="p-block" data-testid="break-controls">
+            <div className="p-row">
+              <div className="p-row-title">Break length</div>
+              <div className="p-row-sub p-nowrap p-break-next">
+                {state.nextBreakAt ? `Next in ${formatMinutes(state.nextBreakAt - now)}` : 'Scheduling…'}
+                <button
+                  className="icon-btn p-mini-btn"
+                  aria-label="Restart break timer"
+                  title={`Restart: next break in ${settings.breakIntervalMin} min`}
+                  onClick={() => void send({ type: 'restartBreakTimer' })}
+                >
+                  <RotateCcw size={13} />
+                </button>
+              </div>
+            </div>
+            <NumberChoice
+              variant="popup"
+              label="Break length"
+              value={settings.breakLengthMin}
+              options={BREAK_LENGTHS}
+              limits={BREAK_LENGTH_LIMITS}
+              unit="min"
+              onChange={(v) => void send({ type: 'settings', patch: { breakLengthMin: v } })}
+            />
+          </div>
+        )}
         <div className="p-meta">
-          {settings.breakEnabled && state.nextBreakAt && !state.breakActive ? (
-            <span>Next break in {formatMinutes(state.nextBreakAt - now)}</span>
+          {settings.breakEnabled ? (
+            state.breakActive ? <span>On a break</span> : <span>Breaks every {settings.breakIntervalMin} min</span>
           ) : (
             <span>Breaks off</span>
           )}

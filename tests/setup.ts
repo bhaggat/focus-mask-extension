@@ -6,7 +6,21 @@ import { afterEach, vi } from 'vitest';
 type Listener = (changes: Record<string, chrome.storage.StorageChange>, area: string) => void;
 const storageListeners = new Set<Listener>();
 
+/** In-memory chrome.alarms: enough for scheduling logic (no firing). */
+const alarmStore = new Map<string, chrome.alarms.Alarm>();
+export const resetAlarms = () => alarmStore.clear();
+const alarms = {
+  create: async (name: string, info: { when?: number; delayInMinutes?: number }) => {
+    const when = info.when ?? Date.now() + (info.delayInMinutes ?? 0) * 60_000;
+    alarmStore.set(name, { name, scheduledTime: when, persistAcrossSessions: true });
+  },
+  get: async (name: string) => alarmStore.get(name),
+  getAll: async () => [...alarmStore.values()],
+  clear: async (name: string) => alarmStore.delete(name),
+};
+
 export const chromeMock = {
+  alarms,
   runtime: {
     sendMessage: vi.fn(),
     openOptionsPage: vi.fn(),
@@ -30,6 +44,7 @@ export function emitStorageChange(changes: Record<string, chrome.storage.Storage
 (globalThis as unknown as { chrome: typeof chromeMock }).chrome = chromeMock;
 
 afterEach(() => {
+  resetAlarms();
   cleanup();
   vi.clearAllMocks();
 });

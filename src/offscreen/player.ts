@@ -1,6 +1,7 @@
 import { getCustomSound } from '../shared/db';
 import { isCustomId } from '../shared/sounds';
-import type { OffscreenStatus } from '../shared/types';
+import type { ChimeKind, CustomSoundRecord, OffscreenStatus } from '../shared/types';
+import { loopModeFor } from './loopMode';
 import { generate } from './synth';
 
 const FADE_SEC = 0.6;
@@ -24,6 +25,7 @@ export class Player {
   private volume = 0.5;
   private error: string | null = null;
   private loadToken = 0;
+  private lastChime: ChimeKind | null = null;
 
   constructor() {
     this.master.gain.value = 0;
@@ -32,14 +34,7 @@ export class Player {
     this.analyser.fftSize = 2048;
   }
 
-  private bufferFor(id: string): AudioBuffer {
-    let buf = this.buffers.get(id);
-    if (!buf) {
-      const { left, right } = generate(id, this.ctx.sampleRate);
-      buf = this.ctx.createBuffer(2, left.length, this.ctx.sampleRate);
-      buf.copyToChannel(left as Float32Array<ArrayBuffer>, 0);
-      buf.copyToChannel(right as Float32Array<ArrayBuffer>, 1);
-    }
+  private remember(id: string, buf: AudioBuffer): AudioBuffer {
     // Refresh LRU position and evict the oldest.
     this.buffers.delete(id);
     this.buffers.set(id, buf);
@@ -47,17 +42,48 @@ export class Player {
     return buf;
   }
 
-  private async startSource(id: string): Promise<{ stop(): void }> {
-    if (!isCustomId(id)) {
-      const src = this.ctx.createBufferSource();
-      src.buffer = this.bufferFor(id);
-      src.loop = true;
-      src.connect(this.master);
-      src.start();
-      return { stop: () => { src.stop(); src.disconnect(); } };
+  private builtinBuffer(id: string): AudioBuffer {
+    const cached = this.buffers.get(id);
+    if (cached) return this.remember(id, cached);
+    const { left, right } = generate(id, this.ctx.sampleRate);
+    const buf = this.ctx.createBuffer(2, left.length, this.ctx.sampleRate);
+    buf.copyToChannel(left as Float32Array<ArrayBuffer>, 0);
+    buf.copyToChannel(right as Float32Array<ArrayBuffer>, 1);
+    return this.remember(id, buf);
+  }
+
+  /**
+   * Buffer to loop for `id`, or null when it should stream through `<audio loop>`
+   * (long/unknown-length custom files, or ones decodeAudioData can't handle).
+   */
+  private async loadBuffer(id: string, rec?: CustomSoundRecord): Promise<AudioBuffer | null> {
+    if (!isCustomId(id)) return this.builtinBuffer(id);
+    const cached = this.buffers.get(id);
+    if (cached) return this.remember(id, cached);
+    if (!rec || loopModeFor(rec.duration) !== 'buffer') return null;
+    try {
+      return this.remember(id, await this.ctx.decodeAudioData(await rec.blob.arrayBuffer()));
+    } catch (e) {
+      console.warn('[FocusMask] decode failed, streaming instead', e);
+      return null;
     }
+  }
+
+  private loopBuffer(buf: AudioBuffer): { stop(): void } {
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+    src.connect(this.master);
+    src.start();
+    return { stop: () => { src.stop(); src.disconnect(); } };
+  }
+
+  private async startSource(id: string): Promise<{ stop(): void }> {
+    if (!isCustomId(id)) return this.loopBuffer(this.builtinBuffer(id));
     const rec = await getCustomSound(id);
     if (!rec) throw new Error('This custom sound no longer exists.');
+    const buf = await this.loadBuffer(id, rec);
+    if (buf) return this.loopBuffer(buf);
     const url = URL.createObjectURL(rec.blob);
     const el = new Audio(url);
     el.loop = true;
@@ -92,14 +118,15 @@ export class Player {
     return v * v;
   }
 
-  async play(id: string, volume: number) {
+  /** Resolves false when a later play/pause superseded this call (nothing new started). */
+  async play(id: string, volume: number): Promise<boolean> {
     this.volume = volume;
     this.error = null;
     const token = ++this.loadToken;
     await this.ctx.resume();
     if (this.currentId !== id || !this.source) {
       // Synthesize before fading out the old sound so the gap stays short.
-      if (!isCustomId(id)) this.bufferFor(id);
+      if (!isCustomId(id)) this.builtinBuffer(id);
       const old = this.source;
       if (old && this.playing) {
         this.ramp(0);
@@ -111,7 +138,7 @@ export class Player {
         const src = await this.startSource(id);
         if (token !== this.loadToken) {
           src.stop();
-          return;
+          return false;
         }
         this.source = src;
         this.currentId = id;
@@ -122,8 +149,10 @@ export class Player {
         throw e;
       }
     }
+    if (token !== this.loadToken) return false;
     this.playing = true;
     this.ramp(this.gainFor(this.volume));
+    return true;
   }
 
   pause() {
@@ -151,6 +180,32 @@ export class Player {
     }
   }
 
+  /**
+   * Two-note heads-up before a break transition: falling before a pause, rising before a resume.
+   * Routed straight to the destination — the master gain is at 0 during a break.
+   */
+  chime(kind: ChimeKind, volume: number) {
+    void this.ctx.resume();
+    const [a, b] = kind === 'pause' ? [659.25, 440] : [440, 659.25]; // E5→A4 / A4→E5
+    const peak = Math.max(0.05, 0.25 * this.gainFor(volume));
+    const t0 = this.ctx.currentTime + 0.02;
+    [a, b].forEach((freq, i) => {
+      const start = t0 + i * 0.2;
+      const osc = this.ctx.createOscillator();
+      const env = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      env.gain.setValueAtTime(0.0001, start);
+      env.gain.exponentialRampToValueAtTime(peak, start + 0.02);
+      env.gain.exponentialRampToValueAtTime(0.0001, start + 0.18);
+      osc.connect(env).connect(this.ctx.destination);
+      osc.start(start);
+      osc.stop(start + 0.2);
+      osc.onended = () => env.disconnect();
+    });
+    this.lastChime = kind;
+  }
+
   status(): OffscreenStatus {
     const data = new Float32Array(this.analyser.fftSize);
     this.analyser.getFloatTimeDomainData(data);
@@ -162,6 +217,7 @@ export class Player {
       contextState: this.ctx.state,
       rms: Math.sqrt(sum / data.length),
       error: this.error,
+      lastChime: this.lastChime,
     };
   }
 }

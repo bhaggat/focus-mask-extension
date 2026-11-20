@@ -33,15 +33,6 @@ export class AudibleDebouncer {
     return this.stable;
   }
 
-  /** Set without debounce (e.g. on startup reconciliation). */
-  force(v: boolean) {
-    this.cancel();
-    if (v !== this.stable) {
-      this.stable = v;
-      this.onChange(v);
-    }
-  }
-
   push(raw: boolean) {
     if (raw === this.stable) {
       this.cancel();

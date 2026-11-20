@@ -1,15 +1,19 @@
-import { CUSTOM_CHANNEL, getCustomSound } from '../shared/db';
+import { CUSTOM_CHANNEL, getCustomSound, hasCustomSound } from '../shared/db';
 import { loadSettings, saveSettings, SLEEP_LIMITS } from '../shared/settings';
-import { initialState, isPlaying, reduce, type StateEvent } from '../shared/state';
+import { initialState, isPlaying, reduce, shouldCountdown, transitionDue, type StateEvent } from '../shared/state';
 import { builtinById, DEFAULT_SOUND_ID, isBuiltinId, isCustomId } from '../shared/sounds';
-import type { BgMessage, MediaSessionConfig, RuntimeState, Settings } from '../shared/types';
+import type { BgMessage, ChimeKind, Countdown, MediaSessionConfig, RuntimeState, Settings } from '../shared/types';
 import {
   ALARM_BREAK_END,
+  ALARM_BREAK_END_WARN,
   ALARM_BREAK_START,
+  ALARM_BREAK_WARN,
   BUTTON_SKIP,
   BUTTON_SNOOZE,
   clearBreakAlarms,
+  clearBreakEndAlarms,
   clearBreakNotification,
+  ensureWarnAlarms,
   NOTIF_BREAK,
   scheduleBreakEnd,
   scheduleNextBreak,
@@ -18,6 +22,7 @@ import {
   SNOOZE_MIN,
 } from './breaks';
 import { updateBadge } from './badge';
+import { CountdownTicker } from './countdown';
 import { offscreenStatus, sendToOffscreen } from './offscreen';
 import { AudibleDebouncer, anyAudibleTab } from './tabs';
 
@@ -40,7 +45,7 @@ function serial<T>(fn: () => Promise<T>): Promise<T> {
 
 async function resolveSoundId(id: string): Promise<string> {
   if (isBuiltinId(id)) return id;
-  if (isCustomId(id) && (await getCustomSound(id))) return id;
+  if (isCustomId(id) && (await hasCustomSound(id))) return id;
   return DEFAULT_SOUND_ID;
 }
 
@@ -55,6 +60,50 @@ async function persist() {
   await chrome.storage.session.set({ [STATE_KEY]: state });
   await updateBadge(state, await soundName(state.soundId)).catch((e: unknown) => console.warn('[FocusMask] badge', e));
   await syncMediaSession();
+}
+
+/**
+ * The break transition armed by a warning alarm. It fires at `at` from the worker's own timer
+ * because packed extensions clamp alarms to ≥30 s apart, so the main alarm can land ~25 s after
+ * its warning. It's independent of the visible countdown: clearing the countdown (play, pause,
+ * a lock) must not delay the break. startBreak/endBreakOnTimer are idempotent with the main alarm.
+ */
+let pending: Countdown | null = null;
+
+const ticker = new CountdownTicker(
+  () => void ready.then(async () => updateBadge(state, await soundName(state.soundId)).catch(() => undefined)),
+  () =>
+    void ready.then(() =>
+      serial(async () => {
+        const due = pending;
+        pending = null;
+        if (!due || !transitionDue(state, due)) return;
+        if (due.kind === 'pause') await startBreak();
+        else await endBreakOnTimer();
+      }),
+    ),
+);
+
+/**
+ * Warning alarm, 5 s before a break starts or ends: arm the transition and, when it changes what
+ * you hear (see shouldCountdown), show the countdown and play the chime.
+ */
+async function onBreakWarn(kind: ChimeKind) {
+  if (!settings.breakEnabled) return;
+  if (kind === 'pause' ? state.breakActive : !state.breakActive) return;
+  const main = await chrome.alarms.get(kind === 'pause' ? ALARM_BREAK_START : ALARM_BREAK_END);
+  const at = main?.scheduledTime ?? (kind === 'pause' ? state.nextBreakAt : state.breakEndsAt);
+  if (!at || at <= Date.now()) return;
+  // The alarm is the source of truth for when the break starts (as in reconcileBreaks).
+  if (kind === 'pause' && state.nextBreakAt !== at) await apply({ type: 'nextBreak', at });
+  pending = { kind, at };
+  ticker.start(at);
+  if (!shouldCountdown(state, kind)) return;
+  await apply({ type: 'countdown', countdown: { kind, at } });
+  // Resume chime: the offscreen doc may have been reclaimed during the silent break.
+  await sendToOffscreen({ type: 'chime', kind, volume: settings.volume }, { create: kind === 'resume' }).catch(
+    (e: unknown) => console.warn('[FocusMask] chime', e),
+  );
 }
 
 /**
@@ -124,11 +173,18 @@ const ready: Promise<void> = (async () => {
   debouncer = new AudibleDebouncer(state.tabAudible, (audible) => {
     void serial(() => apply({ type: 'tabAudible', audible }));
   });
+  // A countdown whose moment passed while the worker slept is stale; otherwise keep ticking.
+  if (state.countdown && state.countdown.at <= Date.now()) state.countdown = null;
   await persist();
   // Reconcile anything that changed while the worker was asleep (or alarms lost on update).
   debouncer.push(await anyAudibleTab());
   await reconcileBreaks();
+  if (settings.breakEnabled) await ensureWarnAlarms();
   await reconcileSleepTimer();
+  if (state.countdown) {
+    pending = state.countdown;
+    ticker.start(state.countdown.at);
+  }
 })();
 
 async function reconcileSleepTimer() {
@@ -147,6 +203,9 @@ async function setSleepTimer(minutes: number | null) {
     await apply({ type: 'sleepTimer', endsAt: null, minutes: null });
     return;
   }
+  // A timer only makes sense while something plays: choosing one while paused starts playback.
+  // (Play never clears the timer; pause does — so play first, then set it.)
+  if (!isPlaying(state)) await apply({ type: 'play', audibleNow: await anyAudibleTab() });
   const m = Math.round(Math.min(SLEEP_LIMITS.max, Math.max(SLEEP_LIMITS.min, minutes)));
   const endsAt = Date.now() + m * 60_000;
   await chrome.alarms.create(ALARM_SLEEP, { when: endsAt });
@@ -161,6 +220,11 @@ async function apply(event: StateEvent): Promise<void> {
   for (const fx of effects) {
     if (fx.type === 'endBreakEarly') await finishBreakBookkeeping(settings.breakIntervalMin);
     else if (fx.type === 'clearSleepTimer') await chrome.alarms.clear(ALARM_SLEEP);
+  }
+  // Rescheduled, toggled off, or already happened: drop the armed transition.
+  if (pending && !transitionDue(state, pending)) {
+    pending = null;
+    ticker.stop();
   }
   await persist();
   if (isPlaying(state) !== wasPlaying || (isPlaying(state) && state.soundId !== prevSound)) await syncAudio();
@@ -192,7 +256,7 @@ async function syncAudio(): Promise<void> {
     }
   }
   if (res && !res.ok) {
-    const fallback = isCustomId(state.soundId) && !(await getCustomSound(state.soundId));
+    const fallback = isCustomId(state.soundId) && !(await hasCustomSound(state.soundId));
     state = reduce(state, { type: 'error', message: res.error ?? 'Playback failed.' }).state;
     if (fallback) {
       state.soundId = DEFAULT_SOUND_ID;
@@ -204,7 +268,7 @@ async function syncAudio(): Promise<void> {
 
 /** Break ended for any reason other than its timer: clean up and schedule the next one. */
 async function finishBreakBookkeeping(nextInMin: number) {
-  await chrome.alarms.clear(ALARM_BREAK_END);
+  await clearBreakEndAlarms();
   await clearBreakNotification();
   const at = settings.breakEnabled ? await scheduleNextBreak(nextInMin) : null;
   state = reduce(state, { type: 'nextBreak', at }).state;
@@ -276,6 +340,11 @@ async function handleMessage(msg: BgMessage): Promise<unknown> {
     case 'endBreak':
       await endBreakEarly(settings.breakIntervalMin);
       break;
+    case 'restartBreakTimer':
+      if (settings.breakEnabled && !state.breakActive) {
+        await apply({ type: 'nextBreak', at: await scheduleNextBreak(settings.breakIntervalMin) });
+      }
+      break;
     case 'sleepTimer':
       await setSleepTimer(msg.minutes);
       break;
@@ -330,6 +399,8 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     serial(async () => {
       if (alarm.name === ALARM_BREAK_START) await startBreak();
       else if (alarm.name === ALARM_BREAK_END) await endBreakOnTimer();
+      else if (alarm.name === ALARM_BREAK_WARN) await onBreakWarn('pause');
+      else if (alarm.name === ALARM_BREAK_END_WARN) await onBreakWarn('resume');
       else if (alarm.name === ALARM_SLEEP) await apply({ type: 'sleepTimerFired' });
     }),
   );
@@ -363,7 +434,7 @@ chrome.notifications.onButtonClicked.addListener((id, index) => {
 });
 
 // Settings changed elsewhere (another device via sync, or the options page).
-chrome.storage.onChanged.addListener((changes, area) => {
+chrome.storage.onChanged.addListener((_changes, area) => {
   if (area !== 'sync') return;
   void ready.then(() =>
     serial(async () => {
@@ -372,23 +443,25 @@ chrome.storage.onChanged.addListener((changes, area) => {
       if (JSON.stringify(prev) !== JSON.stringify(next)) await onSettingsChanged(prev, next);
     }),
   );
-  void changes;
 });
 
 chrome.runtime.onInstalled.addListener(({ reason }) => {
-  void ready.then(async () => {
-    await saveSettings({});
-    if (reason === chrome.runtime.OnInstalledReason.INSTALL) {
-      await chrome.tabs.create({ url: chrome.runtime.getURL('options.html?welcome=1') });
-    }
-  });
+  void ready.then(() =>
+    serial(async () => {
+      // Normalize stored settings inside the queue so it can't race other settings writes.
+      settings = await saveSettings({ volume: settings.volume });
+      if (reason === chrome.runtime.OnInstalledReason.INSTALL) {
+        await chrome.tabs.create({ url: chrome.runtime.getURL('options.html?welcome=1') });
+      }
+    }),
+  );
 });
 
 chrome.runtime.onStartup.addListener(() => {
   void ready.then(() =>
     serial(async () => {
       // Fresh browser session: never auto-play, restart the break clock, drop any sleep timer.
-      await chrome.alarms.clear(ALARM_BREAK_END);
+      await clearBreakEndAlarms();
       await chrome.alarms.clear(ALARM_SLEEP);
       if (state.sleepEndsAt) await apply({ type: 'sleepTimer', endsAt: null, minutes: null });
       if (state.breakActive) await apply({ type: 'breakEnd' });
