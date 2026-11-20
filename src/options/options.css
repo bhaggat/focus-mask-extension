@@ -439,3 +439,18 @@ html {
     flex-wrap: wrap;
   }
 }
+
+.o-setting-gap {
+  margin-top: 10px;
+}
+.o-rename {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--accent);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-weight: 550;
+}

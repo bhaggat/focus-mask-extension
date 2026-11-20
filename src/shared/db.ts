@@ -6,8 +6,18 @@ const STORE = 'sounds';
 
 export const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 export const MAX_UPLOADS = 30;
-const ALLOWED_EXT = ['mp3', 'wav', 'ogg', 'oga'];
-const ALLOWED_MIME = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 'audio/wave', 'audio/vnd.wave', 'audio/ogg'];
+// Anything Chrome can decode; probeDuration() still rejects files this build can't play
+// (e.g. AAC on Chromium builds without proprietary codecs).
+const ALLOWED_EXT = ['mp3', 'wav', 'ogg', 'oga', 'opus', 'flac', 'm4a', 'aac', 'webm'];
+const ALLOWED_MIME = [
+  'audio/mpeg', 'audio/mp3',
+  'audio/wav', 'audio/x-wav', 'audio/wave', 'audio/vnd.wave',
+  'audio/ogg', 'audio/opus', 'audio/webm',
+  'audio/flac', 'audio/x-flac',
+  'audio/mp4', 'audio/x-m4a', 'audio/m4a', 'audio/aac',
+];
+export const UPLOAD_ACCEPT = [...ALLOWED_EXT.map((e) => `.${e}`), ...ALLOWED_MIME].join(',');
+export const UPLOAD_FORMATS_LABEL = 'MP3, WAV, OGG, FLAC or M4A';
 
 export class UploadError extends Error {}
 
@@ -16,7 +26,7 @@ export function validateUpload(file: { name: string; type: string; size: number 
   const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
   const typeOk = file.type ? ALLOWED_MIME.includes(file.type) : false;
   if (!ALLOWED_EXT.includes(ext) && !typeOk) {
-    return `"${file.name}" isn't a supported format. Use MP3, WAV or OGG.`;
+    return `"${file.name}" isn't a supported format. Use ${UPLOAD_FORMATS_LABEL}.`;
   }
   if (file.size === 0) return `"${file.name}" is empty.`;
   if (file.size > MAX_UPLOAD_BYTES) {
@@ -26,9 +36,17 @@ export function validateUpload(file: { name: string; type: string; size: number 
   return null;
 }
 
+export const MAX_NAME_LENGTH = 60;
+
 export function displayNameFromFile(name: string): string {
   const base = name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim();
-  return (base || 'Untitled').slice(0, 60);
+  return (base || 'Untitled').slice(0, MAX_NAME_LENGTH);
+}
+
+/** Collapse whitespace and cap length; returns null if nothing usable is left. */
+export function cleanName(name: string): string | null {
+  const n = name.replace(/\s+/g, ' ').trim().slice(0, MAX_NAME_LENGTH).trim();
+  return n || null;
 }
 
 let dbPromise: Promise<IDBDatabase> | null = null;
@@ -71,6 +89,15 @@ export const putCustomSound = (rec: CustomSoundRecord) => tx('readwrite', (s) =>
 export const getCustomSound = (id: string) =>
   tx<CustomSoundRecord | undefined>('readonly', (s) => s.get(id) as IDBRequest<CustomSoundRecord | undefined>);
 export const deleteCustomSound = (id: string) => tx('readwrite', (s) => s.delete(id)).then(() => undefined);
+
+export async function renameCustomSound(id: string, name: string): Promise<string> {
+  const clean = cleanName(name);
+  if (!clean) throw new UploadError('Name can’t be empty.');
+  const rec = await getCustomSound(id);
+  if (!rec) throw new UploadError('This sound no longer exists.');
+  if (rec.name !== clean) await putCustomSound({ ...rec, name: clean });
+  return clean;
+}
 
 export async function listCustomSounds(): Promise<CustomSoundMeta[]> {
   const all = await tx<CustomSoundRecord[]>('readonly', (s) => s.getAll() as IDBRequest<CustomSoundRecord[]>);

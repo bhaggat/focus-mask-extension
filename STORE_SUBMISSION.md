@@ -51,6 +51,8 @@ FocusMask puts steady masking sound in your toolbar. Click once to play and clic
 ★ AUTO-PAUSE FOR MEETINGS AND VIDEOS
 When another browser tab starts playing audio (Google Meet, Zoom or Teams in the browser, YouTube, Spotify Web), FocusMask fades out. It fades back in a couple of seconds after that tab goes quiet. Muted tabs are ignored, and you can turn auto-pause off anytime.
 
+It also fades out when you lock your screen and comes back when you unlock it (you can turn this off).
+
 Honest note: Chrome extensions can only see browser tabs. FocusMask can't detect the Zoom/Teams desktop apps, phone calls, or people talking nearby. For those, use the toolbar button or the keyboard shortcut.
 
 ★ 8 BUILT-IN SOUNDS, NO DOWNLOADS
@@ -61,7 +63,10 @@ Honest note: Chrome extensions can only see browser tabs. FocusMask can't detect
 Every sound is generated on your device and loops seamlessly. FocusMask works fully offline.
 
 ★ BRING YOUR OWN SOUNDS
-Drag and drop your own MP3, WAV or OGG files (up to 50 MB each). They are stored only on your computer and never uploaded.
+Drag and drop your own MP3, WAV, OGG, FLAC or M4A files (up to 50 MB each), and rename them however you like. They are stored only on your computer and never uploaded.
+
+★ SLEEP TIMER
+Stop playback after 15 minutes, 30 minutes, 1 hour or 2 hours. The sound fades out and stays paused.
 
 ★ HANDS-FREE CONTROL
 Press Alt+Shift+M in any Chrome window to play or pause, without opening the popup. You can change the shortcut at chrome://extensions/shortcuts.
@@ -118,9 +123,10 @@ FocusMask plays ambient masking sound (noise, nature sounds or the user's own au
 |---|---|
 | `offscreen` | `Manifest V3 service workers cannot play audio, so the selected ambient sound plays in an offscreen document (reason AUDIO_PLAYBACK). This lets playback continue after the popup closes. The offscreen document contains no UI and loads no remote content.` |
 | `storage` | `Saves the user's preferences (selected sound, volume, auto-pause toggle, break-reminder interval) in chrome.storage.sync and the current playback state in chrome.storage.session. Nothing is sent to any server.` |
-| `unlimitedStorage` | `Users can upload their own audio files (MP3/WAV/OGG, up to 50 MB each) to use as background sound. These files are stored locally in the extension's IndexedDB, and the default storage quota is too small for typical audio files. Files never leave the device.` |
+| `unlimitedStorage` | `Users can upload their own audio files (MP3, WAV, OGG, FLAC or M4A, up to 50 MB each) to use as background sound. These files are stored locally in the extension's IndexedDB, and the default storage quota is too small for typical audio files. Files never leave the device.` |
 | `alarms` | `Schedules the optional break reminders (for example every 50 minutes) and the end of each break. chrome.alarms is needed because timers do not survive service-worker suspension.` |
 | `notifications` | `Shows the optional break-reminder notification ("Time for a short break") with Snooze and Skip buttons, and a short "Break's over" notice. Break reminders are off by default.` |
+| `idle` | `Used only to detect when the user locks their screen (chrome.idle "locked" state) so the ambient sound pauses while they are away and resumes when they unlock. The extension does not track activity or idle time, and nothing is stored or transmitted. The feature can be turned off in the options page.` |
 
 If the dashboard shows a **Host permissions** box, leave it empty. The extension requests none.
 
@@ -174,6 +180,8 @@ No account or setup needed.
 2. Auto-pause: with sound playing, open any YouTube video in another tab. FocusMask pauses after about 1.5 s and resumes a couple of seconds after the video is paused. It reads only Chrome's tab "audible"/"muted" flags, which do not require the "tabs" permission.
 3. Options page (gear icon): the built-in sound library, uploading your own audio file (stored locally in IndexedDB), and break reminders (off by default; when on, they use chrome.alarms and chrome.notifications).
 4. Keyboard shortcut: Alt+Shift+M toggles play/pause.
+5. Sleep timer: in the popup, pick 15m/30m/1h/2h; playback pauses when it runs out (chrome.alarms).
+6. Screen lock: with sound playing, lock the computer; the sound pauses and resumes on unlock (chrome.idle "locked" state only).
 The extension makes no network requests and contains no remote code.
 ```
 

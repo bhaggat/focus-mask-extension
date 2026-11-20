@@ -31,11 +31,11 @@
 
         <h2>What the extension stores, and where</h2>
         <ul>
-          <li><strong>Preferences</strong> (selected sound, volume, auto-pause on/off, break-reminder settings,
+          <li><strong>Preferences</strong> (selected sound, volume, auto-pause and screen-lock pause on/off, break-reminder settings,
             whether you have seen the welcome screen) are saved with Chrome’s <code>chrome.storage.sync</code>.
             If you use Chrome Sync, Google syncs these between your own signed-in browsers under Google’s privacy
             policy. FocusMask’s developer never receives them.</li>
-          <li><strong>Playback state</strong> (playing/paused, break timer) is kept in
+          <li><strong>Playback state</strong> (playing/paused, break and sleep timers) is kept in
             <code>chrome.storage.session</code> and is cleared when Chrome closes.</li>
           <li><strong>Audio files you upload</strong> are stored only in the extension’s local IndexedDB on your
             device. They are never uploaded or synced anywhere. Deleting a sound, or removing the extension,
@@ -58,6 +58,8 @@
           <li><strong>unlimitedStorage</strong> — lets you keep uploaded audio files locally.</li>
           <li><strong>alarms</strong> — schedules optional break reminders.</li>
           <li><strong>notifications</strong> — shows the optional break reminder.</li>
+          <li><strong>idle</strong> — notices when your screen is locked so the sound can pause until you unlock it.
+            Only the locked/unlocked state is used; it is not stored or sent anywhere.</li>
         </ul>
 
         <h2>Children</h2>

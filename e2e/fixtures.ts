@@ -75,6 +75,26 @@ export class Ext {
   }
 }
 
+/**
+ * Kill the service worker (as Chrome does when idle, or on update) and wake it again
+ * with a message. Pass `wipeSession` to mimic an extension reload/update, which
+ * clears chrome.storage.session but can leave alarms in place.
+ */
+export async function restartWorker(ext: Ext, { wipeSession = false } = {}) {
+  if (wipeSession) await ext.helper.evaluate(() => chrome.storage.session.clear());
+  const cdp = await ext.ctx.newCDPSession(ext.helper);
+  const { targetInfos } = await cdp.send('Target.getTargets');
+  const sw = targetInfos.find((t) => t.type === 'service_worker' && t.url.includes(ext.id));
+  if (!sw) throw new Error('extension service worker target not found');
+  await cdp.send('Target.closeTarget', { targetId: sw.targetId });
+  await cdp.detach();
+  await new Promise((r) => setTimeout(r, 500));
+  await ext.state();
+}
+
+export const badge = (ext: Ext) =>
+  ext.helper.evaluate(async () => ({ text: await chrome.action.getBadgeText({}), title: await chrome.action.getTitle({}) }));
+
 export const audible = (s: OffscreenStatus | null) => !!s && s.playing && s.rms > 0.002;
 export const silent = (s: OffscreenStatus | null) => !s || (!s.playing && s.rms < 0.0005);
 

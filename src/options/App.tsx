@@ -5,6 +5,7 @@ import {
   Keyboard,
   Library,
   Pause,
+  Pencil,
   Play,
   ShieldCheck,
   Trash2,
@@ -12,15 +13,15 @@ import {
   X,
   Zap,
 } from 'lucide-react';
-import { useRef, useState, type DragEvent } from 'react';
-import { MAX_UPLOAD_BYTES } from '../shared/db';
+import { useEffect, useRef, useState, type DragEvent } from 'react';
+import { MAX_NAME_LENGTH, MAX_UPLOAD_BYTES, UPLOAD_ACCEPT, UPLOAD_FORMATS_LABEL } from '../shared/db';
 import { BREAK_INTERVAL_LIMITS, BREAK_LENGTH_LIMITS } from '../shared/settings';
 import { isPlaying, statusKind } from '../shared/state';
 import { BUILTIN_SOUNDS, builtinById, type SoundGroup } from '../shared/sounds';
-import type { Settings } from '../shared/types';
+import type { CustomSoundMeta, Settings } from '../shared/types';
 import { Kbd, Logo, SoundIcon, Toggle } from '../ui/components';
 import { send, useCustomSounds, useNow, useShortcut, useSnapshot, type Snapshot } from '../ui/hooks';
-import { addUploads, formatBytes, formatDuration, removeUpload } from './upload';
+import { addUploads, formatBytes, formatDuration, removeUpload, renameUpload } from './upload';
 
 const INTERVALS = [25, 30, 45, 50, 60, 90];
 const LENGTHS = [3, 5, 10, 15];
@@ -81,7 +82,9 @@ function NowPlaying({ snap }: { snap: Snapshot }) {
     builtinById(snap.state.soundId)?.name ?? list.find((c) => c.id === snap.state.soundId)?.name ?? 'Custom sound';
   const playing = isPlaying(snap.state);
   const kind = statusKind(snap.state);
-  const label = { playing: 'Playing', paused: 'Paused', 'auto-tab': 'Auto-paused', break: 'On a break' }[kind];
+  const label = { playing: 'Playing', paused: 'Paused', 'auto-tab': 'Auto-paused', away: 'Screen locked', break: 'On a break' }[
+    kind
+  ];
   return (
     <div className="o-nowplaying">
       <button
@@ -217,7 +220,7 @@ function MySoundsSection({ snap }: { snap: Snapshot }) {
     <section id="my-sounds" className="o-section">
       <h2>My sounds</h2>
       <p className="o-sub">
-        Add your own MP3, WAV or OGG files (up to {MAX_UPLOAD_BYTES / 1048576} MB each). They stay on this device
+        Add your own {UPLOAD_FORMATS_LABEL} files (up to {MAX_UPLOAD_BYTES / 1048576} MB each). They stay on this device
         and loop continuously.
       </p>
       <div
@@ -241,7 +244,7 @@ function MySoundsSection({ snap }: { snap: Snapshot }) {
         <input
           ref={input}
           type="file"
-          accept=".mp3,.wav,.ogg,.oga,audio/mpeg,audio/wav,audio/ogg"
+          accept={UPLOAD_ACCEPT}
           multiple
           hidden
           data-testid="upload-input"
@@ -257,38 +260,100 @@ function MySoundsSection({ snap }: { snap: Snapshot }) {
       )}
       {list.length > 0 ? (
         <ul className="o-custom-list" data-testid="custom-list">
-          {list.map((c) => {
-            const on = snap.state.soundId === c.id && playing;
-            return (
-              <li key={c.id} className="o-custom-row" aria-current={snap.state.soundId === c.id}>
-                <button
-                  className="icon-btn"
-                  aria-label={on ? `Pause ${c.name}` : `Play ${c.name}`}
-                  onClick={() => void send(on ? { type: 'pause' } : { type: 'select', soundId: c.id, play: true })}
-                >
-                  {on ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}
-                </button>
-                <span className="o-custom-name">{c.name}</span>
-                <span className="o-custom-meta">
-                  {formatDuration(c.duration)} · {formatBytes(c.size)}
-                </span>
-                <button
-                  className="icon-btn o-danger"
-                  aria-label={`Delete ${c.name}`}
-                  onClick={() => {
-                    if (confirm(`Delete “${c.name}”?`)) void removeUpload(c.id);
-                  }}
-                >
-                  <Trash2 size={16} />
-                </button>
-              </li>
-            );
-          })}
+          {list.map((c) => (
+            <CustomRow
+              key={c.id}
+              sound={c}
+              current={snap.state.soundId === c.id}
+              on={snap.state.soundId === c.id && playing}
+              onError={(e) => setErrors([e])}
+            />
+          ))}
         </ul>
       ) : (
         <p className="o-empty">No custom sounds yet.</p>
       )}
     </section>
+  );
+}
+
+function CustomRow({
+  sound: c,
+  current,
+  on,
+  onError,
+}: {
+  sound: CustomSoundMeta;
+  current: boolean;
+  on: boolean;
+  onError: (msg: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(c.name);
+  const done = useRef(false);
+
+  const start = () => {
+    done.current = false;
+    setDraft(c.name);
+    setEditing(true);
+  };
+  const finish = async (save: boolean) => {
+    if (done.current) return; // Enter/Escape followed by the blur they trigger
+    done.current = true;
+    setEditing(false);
+    if (!save || draft.trim() === c.name) return;
+    try {
+      await renameUpload(c.id, draft);
+    } catch (e) {
+      onError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  return (
+    <li className="o-custom-row" aria-current={current}>
+      <button
+        className="icon-btn"
+        aria-label={on ? `Pause ${c.name}` : `Play ${c.name}`}
+        onClick={() => void send(on ? { type: 'pause' } : { type: 'select', soundId: c.id, play: true })}
+      >
+        {on ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}
+      </button>
+      {editing ? (
+        <input
+          className="o-rename"
+          value={draft}
+          maxLength={MAX_NAME_LENGTH}
+          autoFocus
+          aria-label={`New name for ${c.name}`}
+          onFocus={(e) => e.currentTarget.select()}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') void finish(true);
+            else if (e.key === 'Escape') void finish(false);
+          }}
+          onBlur={() => void finish(true)}
+        />
+      ) : (
+        <span className="o-custom-name" onDoubleClick={start} title="Double-click to rename">
+          {c.name}
+        </span>
+      )}
+      <span className="o-custom-meta">
+        {formatDuration(c.duration)} · {formatBytes(c.size)}
+      </span>
+      <button className="icon-btn" aria-label={`Rename ${c.name}`} onClick={start} disabled={editing}>
+        <Pencil size={15} />
+      </button>
+      <button
+        className="icon-btn o-danger"
+        aria-label={`Delete ${c.name}`}
+        onClick={() => {
+          if (confirm(`Delete “${c.name}”?`)) void removeUpload(c.id);
+        }}
+      >
+        <Trash2 size={16} />
+      </button>
+    </li>
   );
 }
 
@@ -325,6 +390,18 @@ function AutoPauseSection({ snap }: { snap: Snapshot }) {
           </p>
         </div>
       </div>
+      <div className="o-card o-setting o-setting-gap">
+        <div>
+          <strong>Pause while your screen is locked</strong>
+          <p>Fades out when you lock your computer and comes back when you unlock it.</p>
+        </div>
+        <Toggle
+          id="lock-toggle"
+          label="Pause while your screen is locked"
+          checked={snap.settings.pauseOnLock}
+          onChange={(v) => void update({ pauseOnLock: v })}
+        />
+      </div>
     </section>
   );
 }
@@ -346,6 +423,17 @@ function NumberChoice({
 }) {
   const [custom, setCustom] = useState(!options.includes(value));
   const [draft, setDraft] = useState(String(value));
+  const editing = useRef(false);
+  // Follow changes made elsewhere (popup, another window, Chrome Sync) unless the user is typing.
+  useEffect(() => {
+    if (!editing.current) setDraft(String(value));
+  }, [value]);
+  const commit = () => {
+    editing.current = false;
+    const n = Math.min(limits.max, Math.max(limits.min, Math.round(Number(draft) || value)));
+    setDraft(String(n));
+    if (n !== value) onChange(n);
+  };
   return (
     <div className="o-choice" role="group" aria-label={label}>
       {options.map((o) => (
@@ -372,12 +460,14 @@ function NumberChoice({
             max={limits.max}
             value={draft}
             aria-label={`${label} (custom)`}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={() => {
-              const n = Math.min(limits.max, Math.max(limits.min, Math.round(Number(draft) || value)));
-              setDraft(String(n));
-              onChange(n);
+            onChange={(e) => {
+              editing.current = true;
+              setDraft(e.target.value);
             }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') commit();
+            }}
+            onBlur={commit}
           />
           {unit}
         </label>
@@ -408,7 +498,7 @@ function BreaksSection({ snap }: { snap: Snapshot }) {
           onChange={(v) => void update({ breakEnabled: v })}
         />
       </div>
-      <div className="o-card o-break-config" aria-disabled={!settings.breakEnabled}>
+      <div className="o-card o-break-config" aria-disabled={!settings.breakEnabled} inert={!settings.breakEnabled}>
         <div className="o-field">
           <span className="o-field-label">Every</span>
           <NumberChoice
@@ -499,6 +589,17 @@ function PrivacySection() {
             For voices and conversations, brown noise masks best. Pink noise is a good all-rounder. Nature sounds are
             less effective at masking but nicer for long sessions.
           </p>
+        </details>
+        <details>
+          <summary>Can it stop on its own after a while?</summary>
+          <p>
+            Yes — use the <strong>Sleep timer</strong> in the toolbar popup (15 min to 2 h). When it runs out the sound
+            fades out and stays paused. Pausing manually cancels the timer.
+          </p>
+        </details>
+        <details>
+          <summary>Can I rename an uploaded sound?</summary>
+          <p>Yes — click the pencil next to it under My sounds (or double-click its name).</p>
         </details>
         <details>
           <summary>Does the sound keep playing if I close the popup?</summary>

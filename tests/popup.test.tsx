@@ -55,4 +55,26 @@ describe('popup', () => {
     expect(chromeMock.runtime.sendMessage).toHaveBeenCalledWith({ type: 'settings', patch: { autoPause: false } });
     await waitFor(() => expect(screen.getByText('Alt+Shift+M')).toBeInTheDocument());
   });
+
+  it('sleep timer chips start and cancel the timer; active timer shows a countdown', async () => {
+    mockSnapshot({ manual: false });
+    const { unmount } = render(<App />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Pause after 30 minutes' }));
+    expect(chromeMock.runtime.sendMessage).toHaveBeenCalledWith({ type: 'sleepTimer', minutes: 30 });
+    unmount();
+
+    mockSnapshot({ manual: false, sleepEndsAt: Date.now() + 61_000, sleepMin: 30 });
+    render(<App />);
+    expect(await screen.findByTestId('sleep-status')).toHaveTextContent(/Pauses in 1:0[01]/);
+    const active = screen.getByRole('button', { name: 'Cancel 30 minutes sleep timer' });
+    expect(active).toHaveAttribute('aria-pressed', 'true');
+    await userEvent.click(active);
+    expect(chromeMock.runtime.sendMessage).toHaveBeenLastCalledWith({ type: 'sleepTimer', minutes: null });
+  });
+
+  it('explains a screen-lock pause', async () => {
+    mockSnapshot({ manual: false, screenLocked: true });
+    render(<App />);
+    expect(await screen.findByTestId('status')).toHaveTextContent('screen locked');
+  });
 });

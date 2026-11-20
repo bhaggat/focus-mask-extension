@@ -107,4 +107,66 @@ describe('pause reasons state machine', () => {
     expect(s.tabOverride).toBe(false);
     expect(pauseReasons(run(s, { type: 'tabAudible', audible: true }))).toEqual(['auto-tab']);
   });
+
+  it('screen lock pauses (soft) and unlock resumes; ignored when the setting is off', () => {
+    let s = run(fresh(), { type: 'play' }, { type: 'screenLocked', locked: true });
+    expect(pauseReasons(s)).toEqual(['away']);
+    expect(statusKind(s)).toBe('away');
+    s = run(s, { type: 'screenLocked', locked: false });
+    expect(isPlaying(s)).toBe(true);
+
+    const off = run(initialState('brown', true, false), { type: 'play' }, { type: 'screenLocked', locked: true });
+    expect(isPlaying(off)).toBe(true);
+    expect(isPlaying(run(s, { type: 'screenLocked', locked: true }, { type: 'lockPause', enabled: false }))).toBe(true);
+  });
+
+  it('manual pause stays sticky across lock/unlock', () => {
+    const s = run(
+      fresh(),
+      { type: 'play' },
+      { type: 'screenLocked', locked: true },
+      { type: 'pause' },
+      { type: 'screenLocked', locked: false },
+    );
+    expect(pauseReasons(s)).toEqual(['manual']);
+  });
+
+  it('sleep timer: firing pauses manually and clears the timer', () => {
+    let s = run(fresh(), { type: 'play' }, { type: 'sleepTimer', endsAt: 999, minutes: 30 });
+    expect(s.sleepEndsAt).toBe(999);
+    expect(s.sleepMin).toBe(30);
+    expect(isPlaying(s)).toBe(true);
+    s = run(s, { type: 'sleepTimerFired' });
+    expect(pauseReasons(s)).toEqual(['manual']);
+    expect(s.sleepEndsAt).toBeNull();
+    expect(s.sleepMin).toBeNull();
+  });
+
+  it('sleep timer: a stale fire with no timer set is a no-op', () => {
+    const s = run(fresh(), { type: 'play' });
+    expect(reduce(s, { type: 'sleepTimerFired' }).state).toBe(s);
+  });
+
+  it('sleep timer: manual pause (and toggle-to-pause) cancels it with a cleanup effect', () => {
+    const s = run(fresh(), { type: 'play' }, { type: 'sleepTimer', endsAt: 999, minutes: 15 });
+    for (const t of [reduce(s, { type: 'pause' }), reduce(s, { type: 'toggle' })]) {
+      expect(t.state.sleepEndsAt).toBeNull();
+      expect(t.effects).toEqual([{ type: 'clearSleepTimer' }]);
+    }
+    expect(reduce(run(fresh(), { type: 'play' }), { type: 'pause' }).effects).toEqual([]);
+  });
+
+  it('sleep timer keeps running through auto-pause and breaks', () => {
+    const s = run(
+      fresh(),
+      { type: 'play' },
+      { type: 'sleepTimer', endsAt: 999, minutes: 60 },
+      { type: 'tabAudible', audible: true },
+      { type: 'breakStart', endsAt: 5 },
+      { type: 'breakEnd' },
+      { type: 'tabAudible', audible: false },
+    );
+    expect(s.sleepEndsAt).toBe(999);
+    expect(isPlaying(s)).toBe(true);
+  });
 });

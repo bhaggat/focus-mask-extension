@@ -5,6 +5,7 @@ import {
   newCustomId,
   notifyCustomChanged,
   putCustomSound,
+  renameCustomSound,
   UploadError,
   validateUpload,
 } from '../shared/db';
@@ -68,6 +69,12 @@ export async function removeUpload(id: string) {
   await deleteCustomSound(id);
   notifyCustomChanged();
   await chrome.runtime.sendMessage({ type: 'customDeleted', soundId: id });
+}
+
+export async function renameUpload(id: string, name: string): Promise<string> {
+  const clean = await renameCustomSound(id, name);
+  notifyCustomChanged();
+  return clean;
 }
 
 export function formatBytes(n: number) {

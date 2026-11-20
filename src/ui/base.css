@@ -211,6 +211,7 @@ input[type='range']::-webkit-slider-thumb {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 25%, transparent);
 }
 .dot[data-kind='auto-tab'],
+.dot[data-kind='away'],
 .dot[data-kind='break'] {
   background: var(--warn);
 }

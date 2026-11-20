@@ -1,7 +1,7 @@
-import { getCustomSound } from '../shared/db';
-import { loadSettings, saveSettings } from '../shared/settings';
+import { CUSTOM_CHANNEL, getCustomSound } from '../shared/db';
+import { loadSettings, saveSettings, SLEEP_LIMITS } from '../shared/settings';
 import { initialState, isPlaying, reduce, type StateEvent } from '../shared/state';
-import { DEFAULT_SOUND_ID, isBuiltinId, isCustomId } from '../shared/sounds';
+import { builtinById, DEFAULT_SOUND_ID, isBuiltinId, isCustomId } from '../shared/sounds';
 import type { BgMessage, RuntimeState, Settings } from '../shared/types';
 import {
   ALARM_BREAK_END,
@@ -17,10 +17,14 @@ import {
   showBreakStarted,
   SNOOZE_MIN,
 } from './breaks';
+import { updateBadge } from './badge';
 import { offscreenStatus, sendToOffscreen } from './offscreen';
 import { AudibleDebouncer, anyAudibleTab } from './tabs';
 
 const STATE_KEY = 'runtime';
+const ALARM_SLEEP = 'sleep-timer';
+/** queryState() needs an idle threshold even though we only care about 'locked'. */
+const IDLE_THRESHOLD_SEC = 15 * 60;
 
 let state: RuntimeState;
 let settings: Settings;
@@ -40,24 +44,83 @@ async function resolveSoundId(id: string): Promise<string> {
   return DEFAULT_SOUND_ID;
 }
 
-const persist = () => chrome.storage.session.set({ [STATE_KEY]: state });
+let customName: { id: string; name: string | undefined } | null = null;
+async function soundName(id: string): Promise<string | undefined> {
+  if (!isCustomId(id)) return builtinById(id)?.name;
+  if (customName?.id !== id) customName = { id, name: (await getCustomSound(id).catch(() => undefined))?.name };
+  return customName.name;
+}
+
+async function persist() {
+  await chrome.storage.session.set({ [STATE_KEY]: state });
+  await updateBadge(state, await soundName(state.soundId)).catch((e: unknown) => console.warn('[FocusMask] badge', e));
+}
+
+/**
+ * Session state is wiped on extension reload/update but alarms survive (and
+ * vice versa on some restarts). Make the two agree so the UI never shows
+ * "Breaks off" while a break alarm is pending, and a break can't get stuck.
+ */
+async function reconcileBreaks() {
+  if (!settings.breakEnabled) {
+    await clearBreakAlarms();
+    if (state.breakActive) await apply({ type: 'breakEnd' });
+    if (state.nextBreakAt !== null) await apply({ type: 'nextBreak', at: null });
+    return;
+  }
+  if (state.breakActive) {
+    if (await chrome.alarms.get(ALARM_BREAK_END)) return;
+    if (state.breakEndsAt && state.breakEndsAt > Date.now()) {
+      await chrome.alarms.create(ALARM_BREAK_END, { when: state.breakEndsAt });
+    } else {
+      await endBreakOnTimer();
+    }
+    return;
+  }
+  const pending = await chrome.alarms.get(ALARM_BREAK_START);
+  const at = pending?.scheduledTime ?? (await scheduleNextBreak(settings.breakIntervalMin));
+  if (state.nextBreakAt !== at) await apply({ type: 'nextBreak', at });
+}
 
 const ready: Promise<void> = (async () => {
   settings = await loadSettings();
-  const stored = (await chrome.storage.session.get(STATE_KEY))[STATE_KEY] as RuntimeState | undefined;
-  state = stored ?? initialState(await resolveSoundId(settings.soundId), settings.autoPause);
+  const stored = (await chrome.storage.session.get(STATE_KEY))[STATE_KEY] as Partial<RuntimeState> | undefined;
+  // Spread over a fresh state so fields added in newer versions always exist.
+  state = { ...initialState(await resolveSoundId(settings.soundId), settings.autoPause, settings.pauseOnLock), ...stored };
   state.autoPause = settings.autoPause;
+  state.lockPause = settings.pauseOnLock;
+  state.screenLocked = (await chrome.idle.queryState(IDLE_THRESHOLD_SEC)) === 'locked';
   debouncer = new AudibleDebouncer(state.tabAudible, (audible) => {
     void serial(() => apply({ type: 'tabAudible', audible }));
   });
-  if (!stored) await persist();
+  await persist();
   // Reconcile anything that changed while the worker was asleep (or alarms lost on update).
   debouncer.push(await anyAudibleTab());
-  if (settings.breakEnabled && !state.breakActive && !(await chrome.alarms.get(ALARM_BREAK_START))) {
-    state.nextBreakAt = await scheduleNextBreak(settings.breakIntervalMin);
-    await persist();
-  }
+  await reconcileBreaks();
+  await reconcileSleepTimer();
 })();
+
+async function reconcileSleepTimer() {
+  const alarm = await chrome.alarms.get(ALARM_SLEEP);
+  if (!state.sleepEndsAt) {
+    if (alarm) await chrome.alarms.clear(ALARM_SLEEP);
+  } else if (!alarm) {
+    if (state.sleepEndsAt > Date.now()) await chrome.alarms.create(ALARM_SLEEP, { when: state.sleepEndsAt });
+    else await apply({ type: 'sleepTimerFired' });
+  }
+}
+
+async function setSleepTimer(minutes: number | null) {
+  await chrome.alarms.clear(ALARM_SLEEP);
+  if (minutes === null || !Number.isFinite(minutes)) {
+    await apply({ type: 'sleepTimer', endsAt: null, minutes: null });
+    return;
+  }
+  const m = Math.round(Math.min(SLEEP_LIMITS.max, Math.max(SLEEP_LIMITS.min, minutes)));
+  const endsAt = Date.now() + m * 60_000;
+  await chrome.alarms.create(ALARM_SLEEP, { when: endsAt });
+  await apply({ type: 'sleepTimer', endsAt, minutes: m });
+}
 
 async function apply(event: StateEvent): Promise<void> {
   const wasPlaying = isPlaying(state);
@@ -66,6 +129,7 @@ async function apply(event: StateEvent): Promise<void> {
   state = next;
   for (const fx of effects) {
     if (fx.type === 'endBreakEarly') await finishBreakBookkeeping(settings.breakIntervalMin);
+    else if (fx.type === 'clearSleepTimer') await chrome.alarms.clear(ALARM_SLEEP);
   }
   await persist();
   if (isPlaying(state) !== wasPlaying || (isPlaying(state) && state.soundId !== prevSound)) await syncAudio();
@@ -139,6 +203,7 @@ async function onSettingsChanged(prev: Settings, next: Settings) {
   settings = next;
   if (prev.volume !== next.volume) await applyVolume(next.volume);
   if (prev.autoPause !== next.autoPause) await apply({ type: 'autoPause', enabled: next.autoPause });
+  if (prev.pauseOnLock !== next.pauseOnLock) await apply({ type: 'lockPause', enabled: next.pauseOnLock });
 
   if (!next.breakEnabled && prev.breakEnabled) {
     await clearBreakAlarms();
@@ -175,6 +240,9 @@ async function handleMessage(msg: BgMessage): Promise<unknown> {
     }
     case 'endBreak':
       await endBreakEarly(settings.breakIntervalMin);
+      break;
+    case 'sleepTimer':
+      await setSleepTimer(msg.minutes);
       break;
     case 'customDeleted':
       if (state.soundId === msg.soundId) {
@@ -224,8 +292,26 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     serial(async () => {
       if (alarm.name === ALARM_BREAK_START) await startBreak();
       else if (alarm.name === ALARM_BREAK_END) await endBreakOnTimer();
+      else if (alarm.name === ALARM_SLEEP) await apply({ type: 'sleepTimerFired' });
     }),
   );
+});
+
+// Only 'locked' matters: idle-but-unlocked usually means reading or listening, not away.
+chrome.idle.setDetectionInterval(IDLE_THRESHOLD_SEC);
+chrome.idle.onStateChanged.addListener((idle) => {
+  void ready.then(() => serial(() => apply({ type: 'screenLocked', locked: idle === 'locked' })));
+});
+
+// A custom sound was renamed/added/deleted in the options page: refresh the cached name in the tooltip.
+new BroadcastChannel(CUSTOM_CHANNEL).onmessage = () => {
+  customName = null;
+  void ready.then(() => serial(persist));
+};
+
+// Clicking the notification body just acknowledges it.
+chrome.notifications.onClicked.addListener((id) => {
+  if (id === NOTIF_BREAK) void clearBreakNotification();
 });
 
 chrome.notifications.onButtonClicked.addListener((id, index) => {
@@ -263,8 +349,10 @@ chrome.runtime.onInstalled.addListener(({ reason }) => {
 chrome.runtime.onStartup.addListener(() => {
   void ready.then(() =>
     serial(async () => {
-      // Fresh browser session: never auto-play, restart the break clock.
+      // Fresh browser session: never auto-play, restart the break clock, drop any sleep timer.
       await chrome.alarms.clear(ALARM_BREAK_END);
+      await chrome.alarms.clear(ALARM_SLEEP);
+      if (state.sleepEndsAt) await apply({ type: 'sleepTimer', endsAt: null, minutes: null });
       if (state.breakActive) await apply({ type: 'breakEnd' });
       const at = settings.breakEnabled ? await scheduleNextBreak(settings.breakIntervalMin) : null;
       await apply({ type: 'nextBreak', at });

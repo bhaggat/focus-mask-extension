@@ -25,7 +25,7 @@
     "service_worker": "background.js",
     "type": "module"
   },
-  "permissions": ["offscreen", "storage", "unlimitedStorage", "alarms", "notifications"],
+  "permissions": ["offscreen", "storage", "unlimitedStorage", "alarms", "notifications", "idle"],
   "commands": {
     "toggle-playback": {
       "suggested_key": {

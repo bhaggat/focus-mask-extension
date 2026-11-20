@@ -5,6 +5,7 @@ export const DEFAULT_SETTINGS: Settings = {
   soundId: DEFAULT_SOUND_ID,
   volume: 0.5,
   autoPause: true,
+  pauseOnLock: true,
   breakEnabled: false,
   breakIntervalMin: 50,
   breakLengthMin: 5,
@@ -13,6 +14,7 @@ export const DEFAULT_SETTINGS: Settings = {
 
 export const BREAK_INTERVAL_LIMITS = { min: 5, max: 240 };
 export const BREAK_LENGTH_LIMITS = { min: 1, max: 60 };
+export const SLEEP_LIMITS = { min: 1, max: 12 * 60 };
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 
@@ -25,6 +27,7 @@ export function normalizeSettings(raw: Partial<Record<keyof Settings, unknown>> 
     soundId: typeof r.soundId === 'string' && r.soundId ? r.soundId : DEFAULT_SETTINGS.soundId,
     volume: clamp(num(r.volume, DEFAULT_SETTINGS.volume), 0, 1),
     autoPause: bool(r.autoPause, DEFAULT_SETTINGS.autoPause),
+    pauseOnLock: bool(r.pauseOnLock, DEFAULT_SETTINGS.pauseOnLock),
     breakEnabled: bool(r.breakEnabled, DEFAULT_SETTINGS.breakEnabled),
     breakIntervalMin: Math.round(
       clamp(num(r.breakIntervalMin, DEFAULT_SETTINGS.breakIntervalMin), BREAK_INTERVAL_LIMITS.min, BREAK_INTERVAL_LIMITS.max),

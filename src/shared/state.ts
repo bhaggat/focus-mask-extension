@@ -4,12 +4,15 @@ import type { PauseReason, RuntimeState } from './types';
  * Pause is a set of reasons. Playback runs only when the set is empty.
  * - manual: sticky, cleared only by the user pressing play.
  * - auto-tab: derived from "another tab is audible" (+ setting, + override).
+ * - away: screen is locked (+ setting). Clears itself on unlock.
  * - break: active break window.
+ * The sleep timer is not a reason: when it fires it sets `manual`.
  */
 export function pauseReasons(s: RuntimeState): PauseReason[] {
   const r: PauseReason[] = [];
   if (s.manual) r.push('manual');
   if (s.autoPause && s.tabAudible && !s.tabOverride) r.push('auto-tab');
+  if (s.lockPause && s.screenLocked) r.push('away');
   if (s.breakActive) r.push('break');
   return r;
 }
@@ -27,25 +30,33 @@ export type StateEvent =
   | { type: 'breakStart'; endsAt: number }
   | { type: 'breakEnd' }
   | { type: 'nextBreak'; at: number | null }
+  | { type: 'screenLocked'; locked: boolean }
+  | { type: 'lockPause'; enabled: boolean }
+  | { type: 'sleepTimer'; endsAt: number | null; minutes: number | null }
+  | { type: 'sleepTimerFired' }
   | { type: 'error'; message: string };
 
-export type Effect = { type: 'endBreakEarly' };
+export type Effect = { type: 'endBreakEarly' } | { type: 'clearSleepTimer' };
 
 export interface Transition {
   state: RuntimeState;
   effects: Effect[];
 }
 
-export function initialState(soundId: string, autoPause: boolean): RuntimeState {
+export function initialState(soundId: string, autoPause: boolean, lockPause = true): RuntimeState {
   return {
     soundId,
     manual: true,
     tabAudible: false,
     tabOverride: false,
     autoPause,
+    lockPause,
+    screenLocked: false,
     breakActive: false,
     breakEndsAt: null,
     nextBreakAt: null,
+    sleepEndsAt: null,
+    sleepMin: null,
     error: null,
   };
 }
@@ -64,12 +75,18 @@ function play(s: RuntimeState, audibleNow = false): Transition {
   return { state: next, effects };
 }
 
+/** Manual pause; a running sleep timer has nothing left to stop, so it's cancelled. */
+function pause(s: RuntimeState, extra: Partial<RuntimeState> = {}): Transition {
+  const effects: Effect[] = s.sleepEndsAt ? [{ type: 'clearSleepTimer' }] : [];
+  return { state: { ...s, ...extra, manual: true, sleepEndsAt: null, sleepMin: null }, effects };
+}
+
 export function reduce(s: RuntimeState, e: StateEvent): Transition {
   switch (e.type) {
     case 'play':
       return play(s, e.audibleNow);
     case 'pause':
-      return { state: { ...s, manual: true }, effects: [] };
+      return pause(s);
     case 'toggle':
       return isPlaying(s) ? reduce(s, { type: 'pause' }) : play(s, e.audibleNow);
     case 'select': {
@@ -90,12 +107,23 @@ export function reduce(s: RuntimeState, e: StateEvent): Transition {
       return { state: { ...s, breakActive: false, breakEndsAt: null }, effects: [] };
     case 'nextBreak':
       return { state: { ...s, nextBreakAt: e.at }, effects: [] };
+    case 'screenLocked':
+      return { state: { ...s, screenLocked: e.locked }, effects: [] };
+    case 'lockPause':
+      return { state: { ...s, lockPause: e.enabled }, effects: [] };
+    case 'sleepTimer':
+      return { state: { ...s, sleepEndsAt: e.endsAt, sleepMin: e.endsAt ? e.minutes : null }, effects: [] };
+    case 'sleepTimerFired':
+      // Alarm already fired, so no cleanup effect needed.
+      return s.sleepEndsAt
+        ? { state: { ...s, manual: true, sleepEndsAt: null, sleepMin: null }, effects: [] }
+        : { state: s, effects: [] };
     case 'error':
-      return { state: { ...s, manual: true, error: e.message }, effects: [] };
+      return pause(s, { error: e.message });
   }
 }
 
-export type StatusKind = 'playing' | 'paused' | 'auto-tab' | 'break';
+export type StatusKind = 'playing' | 'paused' | 'auto-tab' | 'away' | 'break';
 
 /** Highest-priority explanation for the UI. */
 export function statusKind(s: RuntimeState): StatusKind {
@@ -103,5 +131,6 @@ export function statusKind(s: RuntimeState): StatusKind {
   if (r.length === 0) return 'playing';
   if (r.includes('break')) return 'break';
   if (r.includes('manual')) return 'paused';
+  if (r.includes('away')) return 'away';
   return 'auto-tab';
 }

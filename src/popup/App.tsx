@@ -1,9 +1,16 @@
-import { Pause, Play, Settings as Gear, Volume1, Volume2, VolumeX } from 'lucide-react';
+import { Pause, Play, Settings as Gear, Volume1, Volume2, VolumeX, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { isPlaying, statusKind } from '../shared/state';
 import { BUILTIN_SOUNDS, builtinById, isCustomId } from '../shared/sounds';
 import { Kbd, Logo, SoundIcon, Toggle } from '../ui/components';
 import { formatCountdown, formatMinutes, send, useCustomSounds, useNow, useShortcut, useSnapshot } from '../ui/hooks';
+
+const SLEEP_PRESETS = [
+  { min: 15, label: '15m', long: '15 minutes' },
+  { min: 30, label: '30m', long: '30 minutes' },
+  { min: 60, label: '1h', long: '1 hour' },
+  { min: 120, label: '2h', long: '2 hours' },
+];
 
 export function App() {
   const snap = useSnapshot();
@@ -11,7 +18,7 @@ export function App() {
   const shortcut = useShortcut();
   const [volume, setVolume] = useState<number | null>(null);
   const volumeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const now = useNow(!!snap && (snap.state.breakActive || snap.settings.breakEnabled));
+  const now = useNow(!!snap && (snap.state.breakActive || snap.settings.breakEnabled || !!snap.state.sleepEndsAt));
 
   useEffect(() => {
     if (snap && volume === null) setVolume(snap.settings.volume);
@@ -28,6 +35,7 @@ export function App() {
     playing: 'Playing',
     paused: 'Paused',
     'auto-tab': 'Auto-paused — another tab is playing audio',
+    away: 'Paused — screen locked',
     break: state.breakEndsAt ? `On a break · resumes in ${formatCountdown(state.breakEndsAt - now)}` : 'On a break',
   }[kind];
 
@@ -151,6 +159,32 @@ export function App() {
             checked={settings.autoPause}
             onChange={(v) => void send({ type: 'settings', patch: { autoPause: v } })}
           />
+        </div>
+        <div className="p-row">
+          <div>
+            <div className="p-row-title">Sleep timer</div>
+            <div className="p-row-sub p-nowrap" data-testid="sleep-status">
+              {state.sleepEndsAt ? `Pauses in ${formatCountdown(state.sleepEndsAt - now)}` : 'Off'}
+            </div>
+          </div>
+          <div className="p-chips" role="group" aria-label="Sleep timer">
+            {SLEEP_PRESETS.map((p) => {
+              const on = !!state.sleepEndsAt && state.sleepMin === p.min;
+              return (
+                <button
+                  key={p.min}
+                  className="p-chip"
+                  aria-pressed={on}
+                  aria-label={on ? `Cancel ${p.long} sleep timer` : `Pause after ${p.long}`}
+                  title={on ? 'Cancel timer' : `Pause after ${p.long}`}
+                  onClick={() => void send({ type: 'sleepTimer', minutes: on ? null : p.min })}
+                >
+                  {p.label}
+                  {on && <X size={11} strokeWidth={3} aria-hidden />}
+                </button>
+              );
+            })}
+          </div>
         </div>
         <div className="p-meta">
           {settings.breakEnabled && state.nextBreakAt && !state.breakActive ? (

@@ -1,10 +1,12 @@
-export type PauseReason = 'manual' | 'auto-tab' | 'break';
+export type PauseReason = 'manual' | 'auto-tab' | 'away' | 'break';
 
 export interface Settings {
   soundId: string;
   /** 0..1 */
   volume: number;
   autoPause: boolean;
+  /** Pause while the OS screen is locked; resume on unlock. */
+  pauseOnLock: boolean;
   breakEnabled: boolean;
   breakIntervalMin: number;
   breakLengthMin: number;
@@ -21,9 +23,16 @@ export interface RuntimeState {
   /** User pressed play while a tab was audible — ignore it until tabs go quiet. */
   tabOverride: boolean;
   autoPause: boolean;
+  /** Mirrors Settings.pauseOnLock. */
+  lockPause: boolean;
+  screenLocked: boolean;
   breakActive: boolean;
   breakEndsAt: number | null;
   nextBreakAt: number | null;
+  /** Sleep timer: when it fires playback is paused (manual, sticky). */
+  sleepEndsAt: number | null;
+  /** Duration the running sleep timer was started with, for the UI. */
+  sleepMin: number | null;
   /** Last playback error shown to the user (e.g. a deleted custom sound). */
   error: string | null;
 }
@@ -50,6 +59,7 @@ export type BgMessage =
   | { type: 'volume'; volume: number; persist?: boolean }
   | { type: 'settings'; patch: Partial<Settings> }
   | { type: 'endBreak' }
+  | { type: 'sleepTimer'; minutes: number | null }
   | { type: 'customDeleted'; soundId: string }
   | { type: 'audioStatus' }
   | { type: 'getState' };

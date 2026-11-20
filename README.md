@@ -27,7 +27,10 @@ src/options/      library, uploads, auto-pause, breaks, shortcut, FAQ (React)
 src/shared/       pure state machine, settings, IndexedDB store, sound catalog, types
 ```
 
-- **Pause = set of reasons** (`manual` | `auto-tab` | `break`), see `src/shared/state.ts`. Plays only when empty. Manual is sticky; pressing play clears everything (overrides an audible tab until it goes quiet; ends an active break early).
+- **Pause = set of reasons** (`manual` | `auto-tab` | `away` | `break`), see `src/shared/state.ts`. Plays only when empty. Manual is sticky; pressing play clears everything (overrides an audible tab until it goes quiet; ends an active break early). `away` = screen locked (`chrome.idle`), clears on unlock.
+- **Sleep timer** is not a pause reason: a `sleep-timer` alarm sets `manual` when it fires; a manual pause cancels it.
+- **Toolbar badge/tooltip** mirror the status (`ON` / `II` / `BRK` / `!`), see `src/background/badge.ts`.
+- **Worker restarts** reconcile session state with surviving alarms (`reconcileBreaks`, `reconcileSleepTimer`) — an extension reload wipes `storage.session` but not alarms.
 - **State flow:** UI → `chrome.runtime.sendMessage` → worker reducer → `chrome.storage.session` (UI subscribes via `storage.onChanged`) → offscreen `play`/`pause`.
 - **Settings** in `chrome.storage.sync`; uploaded audio in IndexedDB (`unlimitedStorage`), never synced.
 

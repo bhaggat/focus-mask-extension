@@ -78,7 +78,9 @@ async function optionsShot(name, selector, { prep, height = 900, width = 1000 } 
 // Popup: playing brown noise
 await msg({ type: 'volume', volume: 0.6, persist: true });
 await msg({ type: 'select', soundId: 'brown', play: true });
+await msg({ type: 'sleepTimer', minutes: 30 });
 await popupShot('popup-playing');
+await msg({ type: 'sleepTimer', minutes: null });
 
 // Popup: auto-paused by a meeting tab
 const noisy = await ctx.newPage();
@@ -186,7 +188,12 @@ await render(
   split({
     title: 'Mask distractions in <em>one click</em>',
     lead: 'Brown, pink & white noise plus calming nature sounds — right in your toolbar.',
-    bullets: ['Keeps playing when the popup closes', 'Generated on your device — works offline', 'Global shortcut: Alt+Shift+M'],
+    bullets: [
+      'Keeps playing when the popup closes',
+      'Sleep timer: stop after 15 min – 2 h',
+      'Generated on your device — works offline',
+      'Global shortcut: Alt+Shift+M',
+    ],
     image: raw('popup-playing'),
     imgW: 380,
   }),
@@ -197,7 +204,7 @@ await render(
   split({
     title: 'Pauses itself when your <em>meeting starts</em>',
     lead: 'When another browser tab plays audio — Meet, Zoom Web, YouTube — FocusMask steps aside and resumes when it’s quiet.',
-    bullets: ['Toggle on or off anytime', 'Muted tabs are ignored', 'Honest about limits: browser tabs only'],
+    bullets: ['Also pauses while your screen is locked', 'Muted tabs are ignored', 'Honest about limits: browser tabs only'],
     image: raw('popup-autopaused'),
     imgW: 380,
   }),
@@ -224,8 +231,8 @@ await render(
 await render(
   split({
     title: 'Bring <em>your own</em> sounds',
-    lead: 'Drop in MP3, WAV or OGG files. They’re stored only on this device and loop continuously.',
-    bullets: ['Drag & drop or file picker', 'Up to 50 MB per file', 'Never uploaded anywhere'],
+    lead: 'Drop in MP3, WAV, OGG, FLAC or M4A files. They’re stored only on this device and loop continuously.',
+    bullets: ['Drag & drop or file picker', 'Rename them anytime', 'Up to 50 MB per file', 'Never uploaded anywhere'],
     image: raw('mysounds'),
     imgW: 620,
   }),
