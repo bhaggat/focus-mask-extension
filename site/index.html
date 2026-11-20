@@ -1,143 +1,408 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="no-js">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>FocusMask — Focus sounds that step aside for your meetings</title>
     <meta name="description" content="One-click brown, pink & white noise plus nature sounds for Chrome. Auto-pauses when another tab plays audio. Offline and private." />
+    <meta name="theme-color" content="#f7f7fc" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0a0c15" media="(prefers-color-scheme: dark)" />
+    <meta property="og:type" content="website" />
     <meta property="og:title" content="FocusMask — Focus sounds & white noise for Chrome" />
     <meta property="og:description" content="Masking sound in your toolbar that fades out when your meeting starts. Offline, private, free." />
     <meta property="og:image" content="https://focusmask.bhaggat.in/assets/screenshots/1-one-click.png" />
     <meta property="og:url" content="https://focusmask.bhaggat.in/" />
-    <link rel="icon" href="/assets/icon.svg" type="image/svg+xml" />
-    <link rel="icon" href="/assets/icon-32.png" sizes="32x32" />
-    <link rel="stylesheet" href="/assets/site.css" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+    <link rel="icon" href="assets/icon-32.png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="assets/icon-128.png" />
+    <link rel="preload" href="assets/fonts/inter-var.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="assets/site.css" />
+    <script>document.documentElement.className = 'js';</script>
+    <script src="assets/site.js" defer></script>
   </head>
   <body>
+    <a class="skip" href="#main">Skip to content</a>
+
+    <!-- shared gradient for inline SVG strokes -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+      <defs>
+        <linearGradient id="lg" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#6d5df6" />
+          <stop offset="1" stop-color="#2bb5a8" />
+        </linearGradient>
+      </defs>
+    </svg>
+
     <header class="site-head">
       <div class="wrap">
-        <a class="brand" href="/"><img src="/assets/icon.svg" alt="" width="28" height="28" />FocusMask</a>
-        <nav class="site-nav" aria-label="Site">
-          <a class="nav-wide" href="#features">Features</a>
-          <a href="/support/">Support</a>
-          <a href="/privacy-policy/">Privacy</a>
+        <a class="brand" href="./"><img src="assets/icon.svg" alt="" width="30" height="30" />FocusMask</a>
+        <button class="menu-btn" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Open menu">
+          <svg class="i-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+          <svg class="i-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+        </button>
+        <nav class="site-nav" id="site-nav" aria-label="Site">
+          <a href="#how">How it works</a>
+          <a href="#features">Features</a>
+          <a href="support/">Support</a>
+          <a href="privacy-policy/">Privacy</a>
+          <a class="nav-cta" href="#get">Get FocusMask</a>
         </nav>
       </div>
     </header>
 
-    <main>
+    <main id="main">
+      <!-- ============ Hero ============ -->
       <section class="hero">
         <div class="wrap">
           <div>
-            <h1>Block out the noise. <span class="grad">Step aside for the meeting.</span></h1>
+            <span class="pill"><b>Free</b> Chrome extension · v1.0</span>
+            <h1>Block out the noise. <span class="grad-text">Step aside for the meeting.</span></h1>
             <p class="lead">
-              FocusMask puts brown, pink and white noise plus calm nature sounds in your Chrome toolbar. When another
-              tab starts playing audio, it fades out on its own, and it fades back in when that tab goes quiet.
+              Brown, pink and white noise plus calm nature sounds, one click from your toolbar. When another tab
+              starts playing audio, FocusMask fades out. When that tab goes quiet, it fades back in.
             </p>
             <div class="cta-row">
               <!-- STORE_CTA -->
-              <a class="btn btn-ghost" href="#features">See how it works</a>
+              <a class="btn btn-ghost" href="#how">
+                See how it works
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14" /><path d="m19 12-7 7-7-7" /></svg>
+              </a>
             </div>
-            <p class="fine">Free · Works offline · No account · No tracking</p>
+            <ul class="checks">
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>Works offline</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>No account</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>No tracking</li>
+            </ul>
           </div>
-          <div class="hero-shot">
-            <img src="/assets/screenshots/1-one-click.png" alt="The FocusMask popup playing brown noise, with sound tiles, volume, auto-pause and sleep timer" width="1280" height="800" />
+
+          <!-- Live mock of the popup: plays, auto-pauses for a meeting tab, resumes -->
+          <div class="stage demo" role="img" aria-label="The FocusMask popup playing brown noise. When a Google Meet tab starts playing audio, FocusMask auto-pauses, then resumes when the meeting ends.">
+            <div class="popup" aria-hidden="true">
+              <div class="popup-head">
+                <img src="assets/icon.svg" alt="" width="24" height="24" />FocusMask
+                <svg class="gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></svg>
+              </div>
+              <div class="now">
+                <div class="play"><div class="eq"><i></i><i></i><i></i><i></i><i></i></div></div>
+                <div>
+                  <div class="now-title">Brown noise</div>
+                  <div class="status"><span class="s-play">Playing</span><span class="s-paused">Auto-paused</span></div>
+                </div>
+              </div>
+              <div class="vol">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4.7a.7.7 0 0 0-1.2-.5L6.4 7.6a1.4 1.4 0 0 1-1 .4H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.4a1.4 1.4 0 0 1 1 .4l3.4 3.4a.7.7 0 0 0 1.2-.5z" /><path d="M16 9a5 5 0 0 1 0 6" /></svg>
+                <div class="track"></div>
+              </div>
+              <div class="tiles">
+                <div class="tile on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 10v3M6 6v11M10 3v18M14 8v7M18 5v13M22 10v3" /></svg>Brown</div>
+                <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 13a2 2 0 0 0 2-2V7a2 2 0 0 1 4 0v13a2 2 0 0 0 4 0V4a2 2 0 0 1 4 0v13a2 2 0 0 0 4 0v-4a2 2 0 0 1 2-2" /></svg>Pink</div>
+                <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.5a2 2 0 0 0-1.9 1.5l-2.4 8.3a.3.3 0 0 1-.5 0L9.2 2.2a.3.3 0 0 0-.5 0l-2.3 8.3A2 2 0 0 1 4.5 12H2" /></svg>White</div>
+                <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14.9A7 7 0 1 1 15.7 8h1.8a4.5 4.5 0 0 1 2.5 8.2" /><path d="M16 14v6M8 14v6M12 16v6" /></svg>Rain</div>
+                <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" /></svg>Ocean</div>
+                <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16.3c2.2 0 4-1.8 4-4 0-1.2-.6-2.3-1.7-3.2S7.3 6.8 7 5.3c-.3 1.5-1.1 2.8-2.3 3.8S3 11.1 3 12.3c0 2.2 1.8 4 4 4z" /><path d="M12.6 6.6A11 11 0 0 0 14 3c.5 2.5 2 4.9 4 6.5s3 3.5 3 5.5a7 7 0 0 1-11.9 5" /></svg>Stream</div>
+                <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1.1-2.1-.2-4.1 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.2.4-2.3 1-3a2.5 2.5 0 0 0 2.5 2.5z" /></svg>Fire</div>
+                <div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 10v.2A3 3 0 0 1 8.9 16H5a3 3 0 0 1-1-5.8V10a3 3 0 0 1 6 0Z" /><path d="M7 16v6M13 19v3" /><path d="M12 19h8.3a1 1 0 0 0 .7-1.7L18 14h.3a1 1 0 0 0 .7-1.7L16 9h.2a1 1 0 0 0 .8-1.7L13 3l-1.4 1.5" /></svg>Forest</div>
+              </div>
+              <div class="popup-row">
+                <div><b>Auto-pause</b><small>When another browser tab plays audio</small></div>
+                <span class="toggle"></span>
+              </div>
+            </div>
+
+            <div class="float float-meet" aria-hidden="true">
+              <span class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 13 5.2 3.5a.5.5 0 0 0 .8-.4V7.9a.5.5 0 0 0-.8-.4L16 10.5" /><rect x="2" y="6" width="14" height="12" rx="2" /></svg></span>
+              <span><b>Meet tab is playing</b>FocusMask faded out</span>
+            </div>
+            <div class="float float-key" aria-hidden="true">
+              <span class="dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2" /><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10" /></svg></span>
+              <span><b>Alt + Shift + M</b>Play / pause anywhere</span>
+            </div>
           </div>
         </div>
       </section>
 
+      <!-- ============ Works with ============ -->
+      <section class="works" aria-label="Auto-pause works with">
+        <div class="wrap">
+          <p>Steps aside for any tab that plays audio:</p>
+          <ul>
+            <li>Google Meet</li>
+            <li>Zoom web</li>
+            <li>Teams web</li>
+            <li>YouTube</li>
+            <li>Spotify Web</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ============ How it works ============ -->
+      <section class="section" id="how">
+        <div class="wrap">
+          <div class="section-head reveal">
+            <p class="eyebrow">How it works</p>
+            <h2>Set it once. <span class="grad-text">Forget it’s there.</span></h2>
+            <p>No setup, no account. It keeps playing after you close the popup and gets out of the way on its own.</p>
+          </div>
+          <ol class="steps">
+            <li class="step reveal">
+              <h3>Pick a sound</h3>
+              <p>Click the toolbar icon and choose brown noise, rain, ocean or any of the eight built-ins. Or add your own audio.</p>
+            </li>
+            <li class="step reveal">
+              <h3>Get to work</h3>
+              <p>Close the popup. The sound keeps going in the background and drowns out chatter, traffic and the open office.</p>
+            </li>
+            <li class="step reveal">
+              <h3>Join the call</h3>
+              <p>When a meeting or video starts in another tab, FocusMask fades out. When it ends, the sound fades back in.</p>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- ============ Features ============ -->
       <section class="section" id="features">
         <div class="wrap">
-          <h2>Everything you need to focus, nothing you don’t</h2>
-          <p class="sub">One click to play. It keeps going after you close the popup, and it knows when to get out of the way.</p>
-          <div class="features">
-            <article class="feature">
-              <div class="ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg></div>
+          <div class="section-head reveal">
+            <p class="eyebrow">Features</p>
+            <h2>Everything you need to focus. Nothing you don’t.</h2>
+            <p>A small popup for everyday use and a settings page for the rest.</p>
+          </div>
+
+          <div class="bento">
+            <article class="card-f wide reveal">
+              <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" /></svg></div>
               <h3>Auto-pause for meetings and videos</h3>
-              <p>Google Meet, Zoom or Teams in the browser, YouTube, Spotify Web: when a tab makes sound, FocusMask fades out. Muted tabs are ignored.</p>
+              <p>Google Meet, Zoom or Teams in the browser, YouTube, Spotify Web: when a tab makes sound, FocusMask fades out, then fades back in when the tab goes quiet. Muted tabs are ignored.</p>
+              <div class="visual">
+                <div class="lanes" role="img" aria-label="Timeline: while a meeting tab plays audio, FocusMask volume drops to zero, then returns when the meeting ends.">
+                  <div class="lane">
+                    <span>Meet tab</span>
+                    <svg viewBox="0 0 300 40" preserveAspectRatio="none" aria-hidden="true">
+                      <line class="base" x1="0" y1="20" x2="300" y2="20" vector-effect="non-scaling-stroke" />
+                      <g class="meet">
+                        <rect x="110" y="12" width="4" height="16" rx="2" /><rect x="118" y="6" width="4" height="28" rx="2" /><rect x="126" y="14" width="4" height="12" rx="2" /><rect x="134" y="4" width="4" height="32" rx="2" /><rect x="142" y="10" width="4" height="20" rx="2" /><rect x="150" y="15" width="4" height="10" rx="2" /><rect x="158" y="7" width="4" height="26" rx="2" /><rect x="166" y="12" width="4" height="16" rx="2" /><rect x="174" y="5" width="4" height="30" rx="2" /><rect x="182" y="13" width="4" height="14" rx="2" /><rect x="190" y="9" width="4" height="22" rx="2" />
+                      </g>
+                    </svg>
+                  </div>
+                  <div class="lane">
+                    <span>FocusMask</span>
+                    <svg viewBox="0 0 300 40" preserveAspectRatio="none" aria-hidden="true">
+                      <path class="wave" d="M0 8 H96 C106 8 104 34 114 34 H190 C200 34 198 8 208 8 H300" vector-effect="non-scaling-stroke" />
+                    </svg>
+                  </div>
+                  <div class="legend" aria-hidden="true">
+                    <span><i style="background: var(--accent-2)"></i>Tab audio</span>
+                    <span><i style="background: var(--grad)"></i>FocusMask volume</span>
+                  </div>
+                </div>
+              </div>
             </article>
-            <article class="feature">
-              <div class="ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10v3"/><path d="M6 6v11"/><path d="M10 3v18"/><path d="M14 8v7"/><path d="M18 5v13"/><path d="M22 10v3"/></svg></div>
+
+            <article class="card-f reveal">
+              <div class="ico teal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M2 10v3M6 6v11M10 3v18M14 8v7M18 5v13M22 10v3" /></svg></div>
               <h3>8 built-in sounds</h3>
-              <p>Brown, pink and white noise, rain, ocean, stream, fireplace and forest. All generated on your device, with no downloads.</p>
+              <p>Generated on your device. Nothing to download.</p>
+              <div class="visual">
+                <ul class="chips">
+                  <li class="on">Brown</li><li>Pink</li><li>White</li><li>Rain</li><li>Ocean</li><li>Stream</li><li>Fireplace</li><li>Forest</li>
+                </ul>
+              </div>
             </article>
-            <article class="feature">
-              <div class="ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg></div>
+
+            <article class="card-f reveal">
+              <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12" /><path d="m17 8-5-5-5 5" /><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /></svg></div>
               <h3>Your own sounds</h3>
-              <p>Add MP3, WAV, OGG, FLAC or M4A files. They loop seamlessly and stay on your device.</p>
+              <p>Drop in audio files. They loop seamlessly and never leave your device.</p>
+              <div class="visual">
+                <ul class="chips"><li>MP3</li><li>WAV</li><li>OGG</li><li>FLAC</li><li>M4A</li></ul>
+              </div>
             </article>
-            <article class="feature">
-              <div class="ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M22 8c0-2.3-.8-4.3-2-6"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/><path d="M4 2C2.8 3.7 2 5.7 2 8"/></svg></div>
+
+            <article class="card-f reveal">
+              <div class="ico teal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.27 21a2 2 0 0 0 3.46 0" /><path d="M3.26 15.33A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.67C19.41 13.96 18 12.5 18 8A6 6 0 0 0 6 8c0 4.5-1.41 5.96-2.74 7.33" /></svg></div>
               <h3>Gentle break reminders</h3>
-              <p>Optional. A soft chime and a 5-second countdown before the sound pauses for your break and before it comes back.</p>
+              <p>A soft chime and a 5-second countdown before every break, and before the sound comes back.</p>
+              <div class="visual">
+                <div class="ring" aria-hidden="true">
+                  <svg viewBox="0 0 64 64"><circle class="bg" cx="32" cy="32" r="26" /><circle class="fg" cx="32" cy="32" r="26" /></svg>
+                  <div><b>0:05</b><small>Break starts soon</small></div>
+                </div>
+              </div>
             </article>
-            <article class="feature">
-              <div class="ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></div>
+
+            <article class="card-f reveal">
+              <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" /></svg></div>
               <h3>Sleep timer</h3>
-              <p>Fade out after 15 minutes, 2 hours, or any length you choose, up to 12 hours.</p>
+              <p>Fades out after the time you pick, anything up to 12 hours.</p>
+              <div class="visual">
+                <ul class="chips"><li>15m</li><li class="on">30m</li><li>1h</li><li>2h</li><li>Custom</li></ul>
+              </div>
             </article>
-            <article class="feature">
-              <div class="ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/></svg></div>
+
+            <article class="card-f half reveal">
+              <div class="ico teal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3" /></svg></div>
               <h3>Hands-free control</h3>
-              <p>Alt+Shift+M, your headphone button or media keys play and pause. It also pauses while your screen is locked.</p>
+              <p>Shortcut, headphone button or media keys. It also pauses while your screen is locked.</p>
+              <div class="visual">
+                <div class="keys"><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd></div>
+              </div>
+            </article>
+
+            <article class="card-f half reveal">
+              <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2" /><path d="M3 9h18" /><circle cx="17" cy="6" r="0.5" fill="currentColor" /></svg></div>
+              <h3>Status at a glance</h3>
+              <p>The toolbar badge tells you what’s happening and why it stopped, without opening anything.</p>
+              <div class="visual">
+                <ul class="badges">
+                  <li><span style="background: #1f9d8f">ON</span>Playing</li>
+                  <li><span style="background: #c98a00">II</span>Auto-paused</li>
+                  <li><span style="background: #6d5df6">BRK</span>On a break</li>
+                  <li><span style="background: #c98a00">5</span>Countdown</li>
+                </ul>
+              </div>
             </article>
           </div>
         </div>
       </section>
 
-      <section class="section">
+      <!-- ============ Gallery ============ -->
+      <section class="section" id="tour">
         <div class="wrap">
-          <h2>A closer look</h2>
-          <p class="sub">A small popup for everyday use, and a settings page for the rest.</p>
+          <div class="section-head reveal">
+            <p class="eyebrow">A closer look</p>
+            <h2>Small popup. Thoughtful settings.</h2>
+          </div>
           <div class="gallery">
-            <figure>
-              <img src="/assets/screenshots/2-auto-pause.png" alt="Auto-pause settings explaining what FocusMask can and can’t detect" width="1280" height="800" loading="lazy" />
-              <figcaption>Auto-pause, with an honest note on what it can detect.</figcaption>
+            <figure class="shot reveal">
+              <div class="chrome" aria-hidden="true"><i></i><i></i><i></i></div>
+              <img src="assets/screenshots/1-one-click.png" alt="The FocusMask popup playing brown noise, with sound tiles, volume, auto-pause and sleep timer" width="1280" height="800" loading="lazy" decoding="async" />
+              <figcaption><b>One click to play</b>Pick a sound, set the volume, close the popup.</figcaption>
             </figure>
-            <figure>
-              <img src="/assets/screenshots/3-library.png" alt="The sound library with noise and nature sounds" width="1280" height="800" loading="lazy" />
-              <figcaption>Noise for masking voices, nature sounds for long sessions.</figcaption>
+            <figure class="shot reveal">
+              <div class="chrome" aria-hidden="true"><i></i><i></i><i></i></div>
+              <img src="assets/screenshots/2-auto-pause.png" alt="FocusMask auto-paused because another tab is playing audio" width="1280" height="800" loading="lazy" decoding="async" />
+              <figcaption><b>Auto-pause</b>Steps aside for meetings, with an honest note on what it can detect.</figcaption>
             </figure>
-            <figure>
-              <img src="/assets/screenshots/4-your-sounds.png" alt="Uploading and managing your own audio files" width="1280" height="800" loading="lazy" />
-              <figcaption>Bring your own audio. It never leaves your device.</figcaption>
+            <figure class="shot reveal">
+              <div class="chrome" aria-hidden="true"><i></i><i></i><i></i></div>
+              <img src="assets/screenshots/4-your-sounds.png" alt="Uploading and managing your own audio files" width="1280" height="800" loading="lazy" decoding="async" />
+              <figcaption><b>Your own audio</b>Upload, rename and loop your files. They stay on your device.</figcaption>
             </figure>
-            <figure>
-              <img src="/assets/screenshots/5-breaks.png" alt="Break reminder settings with interval and length" width="1280" height="800" loading="lazy" />
-              <figcaption>Break reminders, with a heads-up before every change.</figcaption>
+            <figure class="shot reveal">
+              <div class="chrome" aria-hidden="true"><i></i><i></i><i></i></div>
+              <img src="assets/screenshots/5-breaks.png" alt="Break reminder settings with interval and length" width="1280" height="800" loading="lazy" decoding="async" />
+              <figcaption><b>Break reminders</b>A heads-up before every change, never a surprise.</figcaption>
             </figure>
           </div>
         </div>
       </section>
 
-      <section class="section">
+      <!-- ============ Privacy ============ -->
+      <section class="section" id="privacy">
         <div class="wrap">
-          <div class="promise">
-            <div>
-              <h3>No data collected</h3>
-              <p>No accounts, analytics or servers. Your preferences stay in Chrome’s own storage.</p>
+          <div class="panel reveal">
+            <p class="eyebrow">Private by design</p>
+            <h2>Your focus is nobody else’s business.</h2>
+            <p>No accounts, no analytics, no servers. FocusMask runs entirely inside your browser.</p>
+            <div class="promise">
+              <div>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /><path d="m9 12 2 2 4-4" /></svg>
+                <h3>No data collected</h3>
+                <p>Your preferences stay in Chrome’s own storage. Nothing is sent anywhere.</p>
+              </div>
+              <div>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h.01M8.5 16.43a5 5 0 0 1 7 0M5 12.86a10 10 0 0 1 5.17-2.69M19 12.86a10 10 0 0 0-2-1.52M2 8.82a15 15 0 0 1 4.18-2.64M22 8.82a15 15 0 0 0-11.29-3.76M2 2l20 20" /></svg>
+                <h3>Works offline</h3>
+                <p>Every sound is generated locally. FocusMask makes no network requests.</p>
+              </div>
+              <div>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+                <h3>Minimal permissions</h3>
+                <p>It can’t read your tabs. It only checks whether some tab is making sound.</p>
+              </div>
             </div>
-            <div>
-              <h3>Works offline</h3>
-              <p>Every sound is generated locally. FocusMask makes no network requests.</p>
-            </div>
-            <div>
-              <h3>Minimal permissions</h3>
-              <p>It can’t read your tabs. It only checks whether some tab is making sound.</p>
+            <div class="note">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" /></svg>
+              <p style="margin: 0"><strong>Honest note:</strong> Chrome extensions can only see browser tabs. FocusMask can’t detect desktop apps, phone calls or people talking nearby. Use the toolbar button or shortcut for those. <a href="privacy-policy/">Read the privacy policy</a>.</p>
             </div>
           </div>
-          <p class="fine">Honest note: Chrome extensions can only see browser tabs. FocusMask can’t detect desktop apps, phone calls or people talking nearby. Use the toolbar button or shortcut for those.</p>
+        </div>
+      </section>
+
+      <!-- ============ FAQ ============ -->
+      <section class="section" id="faq">
+        <div class="wrap">
+          <div class="section-head reveal">
+            <p class="eyebrow">FAQ</p>
+            <h2>Good questions</h2>
+          </div>
+          <div class="faq reveal">
+            <details>
+              <summary>Why doesn’t it pause for my Zoom or Teams desktop app?</summary>
+              <p>Extensions can only see browser tabs. If you use a desktop app, press <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd> or click the toolbar button when the call starts.</p>
+            </details>
+            <details>
+              <summary>Which sound should I use?</summary>
+              <p>For voices and conversations, brown noise masks best. Pink noise is a good all-rounder. Nature sounds mask less but are nicer for long sessions.</p>
+            </details>
+            <details>
+              <summary>Does the sound keep playing if I close the popup?</summary>
+              <p>Yes. Playback runs in the background until you pause it or close Chrome.</p>
+            </details>
+            <details>
+              <summary>Is it really free?</summary>
+              <p>Yes. No trial, no account, no ads, and no data collection.</p>
+            </details>
+          </div>
+          <p class="center"><a class="btn btn-ghost" href="support/">More answers in Support</a></p>
+        </div>
+      </section>
+
+      <!-- ============ Final CTA ============ -->
+      <section class="section" id="get">
+        <div class="wrap">
+          <div class="cta-band reveal">
+            <img src="assets/icon.svg" alt="" width="64" height="64" />
+            <h2>Find your focus in <span class="grad-text">one click</span>.</h2>
+            <p>Free, private and offline. Add it to Chrome and press play.</p>
+            <div class="cta-row">
+              <!-- STORE_CTA -->
+            </div>
+          </div>
         </div>
       </section>
     </main>
 
     <footer class="site-foot">
       <div class="wrap">
-        <span>© 2026 FocusMask · Made by <a href="https://www.bhaggat.in/" rel="noopener">Dhruv Bhagat</a></span>
-        <nav aria-label="Footer">
-          <a href="/support/">Support</a>
-          <a href="/privacy-policy/">Privacy policy</a>
-        </nav>
+        <div class="foot-grid">
+          <div>
+            <a class="brand" href="./"><img src="assets/icon.svg" alt="" width="30" height="30" />FocusMask</a>
+            <p>Focus sounds for Chrome that step aside when your meeting starts.</p>
+          </div>
+          <div>
+            <h4>Product</h4>
+            <ul>
+              <li><a href="#how">How it works</a></li>
+              <li><a href="#features">Features</a></li>
+              <li><a href="#get">Get FocusMask</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4>Help</h4>
+            <ul>
+              <li><a href="support/">Support &amp; FAQ</a></li>
+              <li><a href="privacy-policy/">Privacy policy</a></li>
+              <li><a href="mailto:dhruvbhagat98@gmail.com?subject=FocusMask">Contact</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="foot-base">
+          <span>© 2026 FocusMask</span>
+          <span>Made by <a href="https://www.bhaggat.in/" rel="noopener">Dhruv Bhagat</a></span>
+        </div>
       </div>
     </footer>
   </body>

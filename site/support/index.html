@@ -1,89 +1,159 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="no-js">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>FocusMask — Support</title>
     <meta name="description" content="Help, FAQ and contact for the FocusMask Chrome extension." />
-    <link rel="icon" href="/assets/icon.svg" type="image/svg+xml" />
-    <link rel="icon" href="/assets/icon-32.png" sizes="32x32" />
-    <link rel="stylesheet" href="/assets/site.css" />
+    <meta name="theme-color" content="#f7f7fc" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0a0c15" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="../assets/icon.svg" type="image/svg+xml" />
+    <link rel="icon" href="../assets/icon-32.png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="../assets/icon-128.png" />
+    <link rel="preload" href="../assets/fonts/inter-var.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="../assets/site.css" />
+    <script>document.documentElement.className = 'js';</script>
+    <script src="../assets/site.js" defer></script>
   </head>
   <body>
+    <a class="skip" href="#main">Skip to content</a>
+
     <header class="site-head">
       <div class="wrap">
-        <a class="brand" href="/"><img src="/assets/icon.svg" alt="" width="28" height="28" />FocusMask</a>
-        <nav class="site-nav" aria-label="Site">
-          <a class="nav-wide" href="/#features">Features</a>
-          <a href="/support/" aria-current="page">Support</a>
-          <a href="/privacy-policy/">Privacy</a>
+        <a class="brand" href="../"><img src="../assets/icon.svg" alt="" width="30" height="30" />FocusMask</a>
+        <button class="menu-btn" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Open menu">
+          <svg class="i-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+          <svg class="i-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+        </button>
+        <nav class="site-nav" id="site-nav" aria-label="Site">
+          <a href="../#how">How it works</a>
+          <a href="../#features">Features</a>
+          <a href="../support/" aria-current="page">Support</a>
+          <a href="../privacy-policy/">Privacy</a>
+          <a class="nav-cta" href="../#get">Get FocusMask</a>
         </nav>
       </div>
     </header>
 
-    <main class="doc">
-      <h1>Support</h1>
-      <p>Answers to common questions, and how to reach the developer.</p>
+    <main id="main">
+      <section class="page-hero">
+        <div class="wrap">
+          <p class="eyebrow">Help center</p>
+          <h1>How can we help?</h1>
+          <p>Answers to common questions, and a direct line to the developer if you’re stuck.</p>
+        </div>
+      </section>
 
-      <h2>Frequently asked questions</h2>
-      <div class="card faq">
-        <details>
-          <summary>Why doesn’t it pause for my Zoom or Teams call?</summary>
-          <p>It can only see browser tabs. If you use the desktop app, press <strong>Alt+Shift+M</strong> or click the toolbar button when a call starts.</p>
-        </details>
-        <details>
-          <summary>Why did it pause when nothing important was playing?</summary>
-          <p>Any audible tab counts, including ads, notification chimes longer than a second or two, and autoplaying videos. Mute that tab (right-click its tab, then <em>Mute site</em>) and FocusMask will ignore it, or turn auto-pause off.</p>
-        </details>
-        <details>
-          <summary>Which sound should I use?</summary>
-          <p>For voices and conversations, brown noise masks best. Pink noise is a good all-rounder. Nature sounds mask less but are nicer for long sessions.</p>
-        </details>
-        <details>
-          <summary>How do break reminders work?</summary>
-          <p>Turn them on in Settings, then choose how often and how long. Five seconds before a break, a soft falling chime plays and the toolbar badge counts down. Then the sound pauses. Five seconds before the break ends, a rising chime plays and the sound comes back. The popup lets you change the break length or restart the timer, and “End break &amp; resume” ends a break early.</p>
-        </details>
-        <details>
-          <summary>Can it stop on its own after a while?</summary>
-          <p>Yes. Use the <strong>Sleep timer</strong> in the popup: 15 min, 30 min, 1 h, 2 h, or <em>Custom</em> for anything up to 12 hours. When it runs out the sound fades out and stays paused.</p>
-        </details>
-        <details>
-          <summary>Can I use my own audio?</summary>
-          <p>Yes. Open Settings, then <em>My sounds</em>, and drop in MP3, WAV, OGG, FLAC or M4A files up to 50 MB each. They stay on your device. Click the pencil to rename one.</p>
-        </details>
-        <details>
-          <summary>My headphone button controls FocusMask instead of my music.</summary>
-          <p>FocusMask only takes the media keys while no other tab is playing audio. To turn this off, open Settings, then <em>Controls</em>, and switch off <em>Headphone &amp; media keys</em>.</p>
-        </details>
-        <details>
-          <summary>Does the sound keep playing if I close the popup?</summary>
-          <p>Yes. Playback runs in the background until you pause it or close Chrome.</p>
-        </details>
-        <details>
-          <summary>Does FocusMask collect any data?</summary>
-          <p>No. See the <a href="/privacy-policy/">privacy policy</a>.</p>
-        </details>
-      </div>
+      <div class="wrap">
+        <div class="help-grid">
+          <a class="help-card" href="#faq">
+            <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><path d="M12 17h.01" /></svg></span>
+            <b>Browse the FAQ</b>
+            Auto-pause, breaks, sleep timer and your own sounds.
+          </a>
+          <a class="help-card" href="#contact">
+            <span class="ico teal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg></span>
+            <b>Report a bug</b>
+            Email the developer. Replies usually within a few days.
+          </a>
+          <a class="help-card" href="../privacy-policy/">
+            <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /><path d="m9 12 2 2 4-4" /></svg></span>
+            <b>Privacy</b>
+            What’s stored, where, and why. Spoiler: nothing leaves your device.
+          </a>
+        </div>
 
-      <h2>Report a bug or ask a question</h2>
-      <div class="card">
-        <p>Email <a href="mailto:dhruvbhagat98@gmail.com?subject=FocusMask%20support">dhruvbhagat98@gmail.com</a>. It helps to include:</p>
-        <ul>
-          <li>Your FocusMask version (shown at the bottom of the Settings page)</li>
-          <li>Your Chrome version (<code>chrome://version</code>) and operating system</li>
-          <li>What you expected, what happened, and the steps to reproduce it</li>
-        </ul>
-        <p>You’ll usually get a reply within a few days.</p>
+        <h2 class="h2-center" id="faq">Frequently asked questions</h2>
+        <div class="faq">
+          <details>
+            <summary>Why doesn’t it pause for my Zoom or Teams call?</summary>
+            <p>It can only see browser tabs. If you use the desktop app, press <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd> or click the toolbar button when a call starts.</p>
+          </details>
+          <details>
+            <summary>Why did it pause when nothing important was playing?</summary>
+            <p>Any audible tab counts, including ads, notification chimes longer than a second or two, and autoplaying videos. Mute that tab (right-click its tab, then <em>Mute site</em>) and FocusMask will ignore it, or turn auto-pause off.</p>
+          </details>
+          <details>
+            <summary>Which sound should I use?</summary>
+            <p>For voices and conversations, brown noise masks best. Pink noise is a good all-rounder. Nature sounds mask less but are nicer for long sessions.</p>
+          </details>
+          <details>
+            <summary>How do break reminders work?</summary>
+            <p>Turn them on in Settings, then choose how often and how long. Five seconds before a break, a soft falling chime plays and the toolbar badge counts down. Then the sound pauses. Five seconds before the break ends, a rising chime plays and the sound comes back. The popup lets you change the break length or restart the timer, and “End break &amp; resume” ends a break early.</p>
+          </details>
+          <details>
+            <summary>Can it stop on its own after a while?</summary>
+            <p>Yes. Use the <strong>Sleep timer</strong> in the popup: 15 min, 30 min, 1 h, 2 h, or <em>Custom</em> for anything up to 12 hours. When it runs out the sound fades out and stays paused.</p>
+          </details>
+          <details>
+            <summary>Can I use my own audio?</summary>
+            <p>Yes. Open Settings, then <em>My sounds</em>, and drop in MP3, WAV, OGG, FLAC or M4A files up to 50 MB each. They stay on your device. Click the pencil to rename one.</p>
+          </details>
+          <details>
+            <summary>My headphone button controls FocusMask instead of my music.</summary>
+            <p>FocusMask only takes the media keys while no other tab is playing audio. To turn this off, open Settings, then <em>Controls</em>, and switch off <em>Headphone &amp; media keys</em>.</p>
+          </details>
+          <details>
+            <summary>Does the sound keep playing if I close the popup?</summary>
+            <p>Yes. Playback runs in the background until you pause it or close Chrome.</p>
+          </details>
+          <details>
+            <summary>Does FocusMask collect any data?</summary>
+            <p>No. See the <a href="../privacy-policy/">privacy policy</a>.</p>
+          </details>
+        </div>
+
+        <section class="contact" id="contact" aria-labelledby="contact-h">
+          <div>
+            <h2 id="contact-h">Still stuck?</h2>
+            <p>Report a bug or ask a question. Email
+              <a class="mail" href="mailto:dhruvbhagat98@gmail.com?subject=FocusMask%20support">dhruvbhagat98@gmail.com</a>.</p>
+            <a class="btn btn-primary" href="mailto:dhruvbhagat98@gmail.com?subject=FocusMask%20support">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg>
+              Email support
+            </a>
+            <div class="reply">You’ll usually get a reply within a few days.</div>
+          </div>
+          <div>
+            <h3>It helps to include</h3>
+            <ol>
+              <li><span>Your FocusMask version (shown at the bottom of the Settings page)</span></li>
+              <li><span>Your Chrome version (<code>chrome://version</code>) and operating system</span></li>
+              <li><span>What you expected, what happened, and the steps to reproduce it</span></li>
+            </ol>
+          </div>
+        </section>
       </div>
     </main>
 
     <footer class="site-foot">
       <div class="wrap">
-        <span>© 2026 FocusMask · Made by <a href="https://www.bhaggat.in/" rel="noopener">Dhruv Bhagat</a></span>
-        <nav aria-label="Footer">
-          <a href="/support/">Support</a>
-          <a href="/privacy-policy/">Privacy policy</a>
-        </nav>
+        <div class="foot-grid">
+          <div>
+            <a class="brand" href="../"><img src="../assets/icon.svg" alt="" width="30" height="30" />FocusMask</a>
+            <p>Focus sounds for Chrome that step aside when your meeting starts.</p>
+          </div>
+          <div>
+            <h4>Product</h4>
+            <ul>
+              <li><a href="../#how">How it works</a></li>
+              <li><a href="../#features">Features</a></li>
+              <li><a href="../#get">Get FocusMask</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4>Help</h4>
+            <ul>
+              <li><a href="../support/">Support &amp; FAQ</a></li>
+              <li><a href="../privacy-policy/">Privacy policy</a></li>
+              <li><a href="mailto:dhruvbhagat98@gmail.com?subject=FocusMask">Contact</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="foot-base">
+          <span>© 2026 FocusMask</span>
+          <span>Made by <a href="https://www.bhaggat.in/" rel="noopener">Dhruv Bhagat</a></span>
+        </div>
       </div>
     </footer>
   </body>

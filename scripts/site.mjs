@@ -9,14 +9,29 @@ export const STORE_ITEM_ID = '';
 
 const root = resolve(import.meta.dirname, '..');
 const MARKER = '<!-- STORE_CTA -->';
+const BASE_MARKER = '<!-- SITE_BASE -->';
+const PLUS_ICON =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
 
 function storeCta(storeUrl) {
   return storeUrl
-    ? `<a class="btn btn-primary" href="${storeUrl}" rel="noopener">Add to Chrome — it’s free</a>`
+    ? `<a class="btn btn-primary" href="${storeUrl}" rel="noopener">${PLUS_ICON}Add to Chrome — it’s free</a>`
     : '<span class="btn btn-soon" aria-disabled="true">Coming soon to the Chrome Web Store</span>';
 }
 
-export async function buildSite(outDir, { storeUrl = STORE_ITEM_ID ? `https://chromewebstore.google.com/detail/${STORE_ITEM_ID}` : '' } = {}) {
+/**
+ * Pages link with relative URLs so the site works both on a custom domain and under
+ * a GitHub Pages project path (/focus-mask-extension/). 404.html is served at any depth,
+ * so it gets a <base> pointing at the site root instead.
+ * @param base path prefix, e.g. '' or '/focus-mask-extension' (CI passes configure-pages' base_path)
+ */
+export async function buildSite(
+  outDir,
+  {
+    storeUrl = STORE_ITEM_ID ? `https://chromewebstore.google.com/detail/${STORE_ITEM_ID}` : '',
+    base = process.env.SITE_BASE ?? '',
+  } = {},
+) {
   rmSync(outDir, { recursive: true, force: true });
   cpSync(join(root, 'site'), outDir, { recursive: true });
 
@@ -31,6 +46,12 @@ export async function buildSite(outDir, { storeUrl = STORE_ITEM_ID ? `https://ch
   const html = readFileSync(index, 'utf8');
   if (!html.includes(MARKER)) throw new Error(`site/index.html is missing ${MARKER}`);
   writeFileSync(index, html.replaceAll(MARKER, storeCta(storeUrl)));
+
+  const notFound = join(outDir, '404.html');
+  const page = readFileSync(notFound, 'utf8');
+  if (!page.includes(BASE_MARKER)) throw new Error(`site/404.html is missing ${BASE_MARKER}`);
+  const baseHref = `${base.replace(/\/+$/, '')}/`;
+  writeFileSync(notFound, page.replace(BASE_MARKER, `<base href="${baseHref}" />`));
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {

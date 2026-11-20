@@ -31,8 +31,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - id: pages
+        uses: actions/configure-pages@v5
       - run: node scripts/site.mjs
-      - uses: actions/configure-pages@v5
+        env:
+          SITE_BASE: ${{ steps.pages.outputs.base_path }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site-dist
