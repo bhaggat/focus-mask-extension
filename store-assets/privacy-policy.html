@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FocusMask — Privacy Policy</title>
+    <style>
+      :root { --bg: #f7f7fc; --text: #171a2b; --muted: #555b78; --card: #fff; --accent: #5b4ef0; }
+      @media (prefers-color-scheme: dark) {
+        :root { --bg: #0e1018; --text: #eceef8; --muted: #a0a6c2; --card: #171a26; --accent: #8b80ff; }
+      }
+      body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+      main { max-width: 720px; margin: 0 auto; padding: 48px 16px 64px; }
+      .card { background: var(--card); border-radius: 16px; padding: 28px 28px 20px; box-shadow: 0 6px 24px rgba(20, 20, 60, 0.08); }
+      h1 { font-size: 30px; letter-spacing: -0.02em; margin: 0 0 4px; }
+      h2 { font-size: 19px; margin: 28px 0 6px; }
+      p, li { color: var(--muted); }
+      strong { color: var(--text); }
+      .date { margin-top: 0; }
+      a { color: var(--accent); }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="card">
+        <h1>FocusMask Privacy Policy</h1>
+        <p class="date">Effective: 20 November 2026</p>
+
+        <p><strong>Short version: FocusMask does not collect, transmit, sell or share any personal data.</strong>
+          It has no servers, no accounts, no analytics and no advertising.</p>
+
+        <h2>What the extension stores, and where</h2>
+        <ul>
+          <li><strong>Preferences</strong> (selected sound, volume, auto-pause on/off, break-reminder settings,
+            whether you have seen the welcome screen) are saved with Chrome’s <code>chrome.storage.sync</code>.
+            If you use Chrome Sync, Google syncs these between your own signed-in browsers under Google’s privacy
+            policy. FocusMask’s developer never receives them.</li>
+          <li><strong>Playback state</strong> (playing/paused, break timer) is kept in
+            <code>chrome.storage.session</code> and is cleared when Chrome closes.</li>
+          <li><strong>Audio files you upload</strong> are stored only in the extension’s local IndexedDB on your
+            device. They are never uploaded or synced anywhere. Deleting a sound, or removing the extension,
+            deletes them.</li>
+        </ul>
+
+        <h2>Browser tab audio</h2>
+        <p>For the optional auto-pause feature, FocusMask asks Chrome whether any tab is currently making sound
+          (Chrome’s <code>audible</code> and <code>muted</code> flags). It does not request the <code>tabs</code>
+          permission and cannot read the address, title or content of your tabs. This check happens locally and
+          nothing about it is stored or sent anywhere.</p>
+
+        <h2>Network access</h2>
+        <p>FocusMask makes no network requests. All sounds are generated on your device, and it works offline.</p>
+
+        <h2>Permissions</h2>
+        <ul>
+          <li><strong>offscreen</strong> — plays audio in a hidden page so sound continues after the popup closes.</li>
+          <li><strong>storage</strong> — saves your preferences.</li>
+          <li><strong>unlimitedStorage</strong> — lets you keep uploaded audio files locally.</li>
+          <li><strong>alarms</strong> — schedules optional break reminders.</li>
+          <li><strong>notifications</strong> — shows the optional break reminder.</li>
+        </ul>
+
+        <h2>Children</h2>
+        <p>FocusMask does not knowingly collect information from anyone, including children.</p>
+
+        <h2>Changes</h2>
+        <p>If this policy changes, the updated version will be published at this address with a new effective
+          date.</p>
+
+        <h2>Contact</h2>
+        <p>Questions: <a href="mailto:CONTACT_EMAIL">CONTACT_EMAIL</a></p>
+      </div>
+    </main>
+  </body>
+</html>
