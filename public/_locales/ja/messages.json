@@ -1,0 +1,11 @@
+{
+  "extName": {
+    "message": "FocusMask – 集中サウンド＆ホワイトノイズ"
+  },
+  "extDescription": {
+    "message": "ワンクリックでブラウン・ピンク・ホワイトノイズや自然音を再生。他タブの音声再生時に自動停止。完全オフライン＆プライバシー重視。"
+  },
+  "commandToggle": {
+    "message": "環境音の再生 / 一時停止"
+  }
+}

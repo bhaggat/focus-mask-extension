@@ -1,0 +1,11 @@
+{
+  "extName": {
+    "message": "FocusMask – Sons de Foco e Ruído Branco"
+  },
+  "extDescription": {
+    "message": "Ruído marrom, rosa e branco e sons da natureza em um clique, com pausa automática quando outra aba toca áudio. Offline."
+  },
+  "commandToggle": {
+    "message": "Reproduzir / pausar o som ambiente"
+  }
+}

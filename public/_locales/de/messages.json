@@ -1,0 +1,11 @@
+{
+  "extName": {
+    "message": "FocusMask – Fokus-Sounds & Weißes Rauschen"
+  },
+  "extDescription": {
+    "message": "Braunes, rosa und weißes Rauschen sowie Naturgeräusche per Klick – pausiert automatisch bei Audio in anderen Tabs. Offline."
+  },
+  "commandToggle": {
+    "message": "Hintergrundgeräusch abspielen / pausieren"
+  }
+}

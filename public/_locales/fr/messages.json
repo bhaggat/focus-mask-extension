@@ -1,0 +1,11 @@
+{
+  "extName": {
+    "message": "FocusMask – Sons de Concentration et Bruit Blanc"
+  },
+  "extDescription": {
+    "message": "Bruit brun, rose et blanc et sons de la nature en un clic, mis en pause automatiquement dès qu’un autre onglet lit de l’audio."
+  },
+  "commandToggle": {
+    "message": "Lire / mettre en pause le son ambiant"
+  }
+}

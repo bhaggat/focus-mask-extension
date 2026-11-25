@@ -1,0 +1,11 @@
+{
+  "extName": {
+    "message": "FocusMask – 집중 사운드 및 백색 소음"
+  },
+  "extDescription": {
+    "message": "원클릭 브라운·핑크·화이트 노이즈 및 자연의 소리. 다른 탭에서 오디오가 재생되면 자동 일시정지됩니다. 오프라인 & 프라이버시 보호."
+  },
+  "commandToggle": {
+    "message": "배경 사운드 재생 / 일시정지"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "extName": {
+    "message": "FocusMask – Focus Sounds & White Noise",
+    "description": "Extension title shown in Chrome Web Store"
+  },
+  "extDescription": {
+    "message": "One-click brown, pink & white noise plus nature sounds that auto-pause when another tab plays audio. Offline & private.",
+    "description": "Extension summary shown in Chrome Web Store"
+  },
+  "commandToggle": {
+    "message": "Play / pause the ambient sound",
+    "description": "Keyboard shortcut description"
+  }
+}

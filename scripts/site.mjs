@@ -5,7 +5,7 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /** Chrome Web Store item ID: set once the package is uploaded (dev console → item → ID). */
-export const STORE_ITEM_ID = '';
+export const STORE_ITEM_ID = 'fbbgelepmidgecbhggehgkldeommhpma';
 
 const root = resolve(import.meta.dirname, '..');
 const MARKER = '<!-- STORE_CTA -->';

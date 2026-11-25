@@ -1,9 +1,10 @@
 {
   "manifest_version": 3,
-  "name": "FocusMask – Focus Sounds & White Noise",
+  "default_locale": "en",
+  "name": "__MSG_extName__",
   "short_name": "FocusMask",
-  "version": "1.0.1",
-  "description": "One-click brown, pink & white noise plus nature sounds that auto-pause when another tab plays audio. Offline & private.",
+  "version": "1.0.2",
+  "description": "__MSG_extDescription__",
   "minimum_chrome_version": "116",
   "icons": {
     "16": "icons/icon-16.png",
@@ -39,7 +40,7 @@
         "default": "Alt+Shift+M",
         "mac": "Alt+Shift+M"
       },
-      "description": "Play / pause the ambient sound"
+      "description": "__MSG_commandToggle__"
     }
   },
   "content_security_policy": {
