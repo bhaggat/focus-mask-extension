@@ -5,6 +5,7 @@ import { statusLabel } from '../shared/labels';
 import { BREAK_LENGTH_LIMITS, SLEEP_LIMITS } from '../shared/settings';
 import { BUILTIN_SOUNDS, soundDisplayName } from '../shared/sounds';
 import { Kbd, Logo, SoundIcon, Toggle } from '../ui/components';
+import { ReviewPrompt } from './ReviewPrompt';
 import { NumberChoice } from '../ui/NumberChoice';
 import { formatCountdown, formatMinutes, send, useCustomSounds, useNow, useShortcut, useSnapshot } from '../ui/hooks';
 
@@ -282,6 +283,7 @@ export function App() {
             />
           </div>
         )}
+        <ReviewPrompt />
         <div className="p-meta">
           {settings.breakEnabled ? (
             state.breakActive ? <span>On a break</span> : <span>Breaks every {settings.breakIntervalMin} min</span>

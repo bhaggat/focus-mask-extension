@@ -1,7 +1,7 @@
 {
   "name": "focusmask",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "scripts": {
     "dev": "vite build --watch --mode development",
@@ -11,6 +11,11 @@
     "test:watch": "vitest",
     "test:e2e": "npm run build && playwright test",
     "zip": "node scripts/zip.mjs",
+    "deploy": "node scripts/deploy.js",
+    "deploy:patch": "node scripts/deploy.js patch",
+    "deploy:minor": "node scripts/deploy.js minor",
+    "deploy:major": "node scripts/deploy.js major",
+    "upload": "node scripts/deploy.js --skip-submit",
     "assets": "node scripts/store-assets.mjs",
     "release": "npm run test && npm run test:e2e && npm run zip",
     "site": "node scripts/site.mjs"

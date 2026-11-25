@@ -446,6 +446,13 @@ chrome.storage.onChanged.addListener((_changes, area) => {
 });
 
 chrome.runtime.onInstalled.addListener(({ reason }) => {
+  void chrome.storage.local.get('reviewPromptState').then((res) => {
+    const existing = res.reviewPromptState as { installedAt?: number } | undefined;
+    if (!existing?.installedAt) {
+      return chrome.storage.local.set({ reviewPromptState: { installedAt: Date.now() } });
+    }
+    return undefined;
+  });
   void ready.then(() =>
     serial(async () => {
       // Normalize stored settings inside the queue so it can't race other settings writes.

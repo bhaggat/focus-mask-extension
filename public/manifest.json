@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "FocusMask – Focus Sounds & White Noise",
   "short_name": "FocusMask",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "One-click brown, pink & white noise plus nature sounds that auto-pause when another tab plays audio. Offline & private.",
   "minimum_chrome_version": "116",
   "icons": {
@@ -25,7 +25,14 @@
     "service_worker": "background.js",
     "type": "module"
   },
-  "permissions": ["offscreen", "storage", "unlimitedStorage", "alarms", "notifications", "idle"],
+  "permissions": [
+    "offscreen",
+    "storage",
+    "unlimitedStorage",
+    "alarms",
+    "notifications",
+    "idle"
+  ],
   "commands": {
     "toggle-playback": {
       "suggested_key": {
